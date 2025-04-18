@@ -1,0 +1,20 @@
+{
+  "name": "topscript",
+  "version": "0.0.1",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "license": "MIT",
+  "dependencies": {
+    "acorn": "^8.14.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.1",
+    "tsc": "^2.0.4",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.3",
+    "vitest": "^1.5.1"
+  },
+  "scripts": {
+    "test": "vitest"
+  }
+}
