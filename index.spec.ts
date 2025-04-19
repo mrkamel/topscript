@@ -48,6 +48,12 @@ describe('topscript', () => {
 
   it('evaluates object assignments', () => {
     expect(topscript(`
+      const obj = {};
+      obj.a = 1;
+      obj
+    `)).toEqual({ a: 1 });
+
+    expect(topscript(`
       const obj = { a: 1 };
       obj.a = 2;
       obj
@@ -78,6 +84,14 @@ describe('topscript', () => {
       arr[0][1] = 4;
       arr
     `)).toEqual([[1, 4, 3]]);
+
+    expect(topscript(`
+      const arr = [];
+      arr[0] = 1;
+      arr[1] = 2;
+      arr[2] = 3;
+      arr
+    `)).toEqual([1, 2, 3]);
   });
 
   it('evaluates arrays', () => {

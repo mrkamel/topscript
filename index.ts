@@ -214,10 +214,10 @@ export function topscript(script: string, context: ObjectLiteral = {}): any {
           const object = visitNode({ node: expression.left.object, scope });
 
           if (expression.left.property.type === 'Identifier') {
-            redefineProperty(object, expression.left.property.name, { value: visitNode({ node: expression.right, scope }) });
+            object[expression.left.property.name] = visitNode({ node: expression.right, scope });
             return;
           } else {
-            redefineProperty(object, visitNode({ node: expression.left.property, scope }), { value: visitNode({ node: expression.right, scope }) });
+            object[visitNode({ node: expression.left.property, scope })] = visitNode({ node: expression.right, scope });
             return;
           }
         } else {
