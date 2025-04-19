@@ -46,6 +46,40 @@ describe('topscript', () => {
     expect(topscript('let x = 5; x')).toBe(5);
   });
 
+  it('evaluates object assignments', () => {
+    expect(topscript(`
+      const obj = { a: 1 };
+      obj.a = 2;
+      obj
+    `)).toEqual({ a: 2 });
+
+    expect(topscript(`
+      const obj = { a: { b: 1 } };
+      obj.a.b = 2;
+      obj
+    `)).toEqual({ a: { b: 2 } });
+
+    expect(topscript(`
+      const obj = { a: { bc: 1 } };
+      obj.a['b' + 'c'] = 2;
+      obj
+    `)).toEqual({ a: { bc: 2 } });
+  });
+
+  it('evaluates array assignments', () => {
+    expect(topscript(`
+      const arr = [1, 2, 3];
+      arr[0] = 4;
+      arr
+    `)).toEqual([4, 2, 3]);
+
+    expect(topscript(`
+      const arr = [[1, 2, 3]];
+      arr[0][1] = 4;
+      arr
+    `)).toEqual([[1, 4, 3]]);
+  });
+
   it('evaluates arrays', () => {
     expect(topscript('[1, 2, 3]')).toEqual([1, 2, 3]);
 
@@ -56,7 +90,7 @@ describe('topscript', () => {
     `)).toEqual([1, 2, 3]);
   });
 
-  it('allows array access', () => {
+  it('evaluates array access', () => {
     expect(topscript('[1, 2, 3][0]')).toBe(1);
     expect(topscript('[1, 2, 3][1]')).toBe(2);
   });
@@ -80,6 +114,16 @@ describe('topscript', () => {
       const y = { ...x, b: 2 };
       y
     `)).toEqual({ a: 1, b: 2 });
+
+    expect(topscript('const obj = { a: { b() { return 1; } } }; obj.a.b()')).toBe(1);
+  });
+
+  it('does not support optional chaining', () => {
+    expect(() => topscript('({ a: 1 }).b?.c')).toThrow(/Unexpected token/);
+  });
+
+  it('does not support destructuring', () => {
+    expect(() => topscript('const { a } = { a: 1 }; a')).toThrow('Unknown variable declaration ObjectPattern');
   });
 
   it('allows object property access', () => {
@@ -129,6 +173,32 @@ describe('topscript', () => {
       x
     `)).toBe(2);
 
+    expect(topscript(`
+      let x = 0;
+
+      if (false) {
+        x = 1;
+      } else if (true) {
+       x = 2;
+      }
+
+      x
+    `)).toBe(2);
+
+    expect(topscript(`
+      let x = 0;
+
+      if (false) {
+        x = 1;
+      } else if (false) {
+       x = 2;
+      } else {
+       x = 3;
+      }
+
+      x
+    `)).toBe(3);
+
     expect(topscript('if (true) { 1 } else { 2 }')).toBeUndefined();
     expect(topscript('if (true) 1')).toBeUndefined();
   });
@@ -149,12 +219,12 @@ describe('topscript', () => {
   });
 
   it('throws on unknown variables', () => {
-    expect(() => topscript('unknownVar')).toThrow();
+    expect(() => topscript('unknownVar')).toThrow('Unknown variable unknownVar');
   });
 
   it('throws on unsupported features', () => {
-    expect(() => topscript('async function f() {}')).toThrow();
-    expect(() => topscript('const f = async () => {}')).toThrow();
+    expect(() => topscript('async function f() {}')).toThrow('Async functions are not supported');
+    expect(() => topscript('const f = async () => {}')).toThrow('Async functions are not supported');
   });
 
   describe('scope', () => {
