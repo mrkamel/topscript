@@ -256,8 +256,8 @@ export function topscript(script: string, context: ObjectLiteral = {}): any {
     }
   }
 
-  function visitLiteral({ node, scope }: { node: Literal, scope: object }) {
-    return node.value
+  function visitLiteral({ node }: { node: Literal }) {
+    return node.value;
   }
 
   function visitBlockStatement({ node, scope, params }: { node: BlockStatement, scope: object, params?: any[] }) {
@@ -280,7 +280,7 @@ export function topscript(script: string, context: ObjectLiteral = {}): any {
 
         throw (error);
       }
-    }
+    };
   }
 
   function visitArrowFunctionBody({ node, scope, params }: { node: AnyNode, scope: object, params: any[] }) {
@@ -292,7 +292,7 @@ export function topscript(script: string, context: ObjectLiteral = {}): any {
       });
 
       return visitNode({ node, scope: newScope });
-    }
+    };
   }
 
   function visitFunctionBody({ node, scope, params }: { node: AnyNode, scope: object, params: any[] }) {
@@ -374,7 +374,7 @@ export function topscript(script: string, context: ObjectLiteral = {}): any {
       case 'LogicalExpression':
         return visitLogicalExpression({ expression: node, scope });
       case 'Literal':
-        return visitLiteral({ node, scope });
+        return visitLiteral({ node });
       case 'Identifier':
         if (!hasProperty(scope, node.name)) throw new Error(`Unknown variable ${node.name}`);
 
