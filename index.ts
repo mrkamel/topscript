@@ -257,7 +257,7 @@ export function topscript(script: string, context: ObjectLiteral = {}): any {
   }
 
   function visitLiteral({ node }: { node: Literal }) {
-    return node.value
+    return node.value;
   }
 
   function visitBlockStatement({ node, scope, params }: { node: BlockStatement, scope: object, params?: any[] }) {
@@ -280,7 +280,7 @@ export function topscript(script: string, context: ObjectLiteral = {}): any {
 
         throw (error);
       }
-    }
+    };
   }
 
   function visitArrowFunctionBody({ node, scope, params }: { node: AnyNode, scope: object, params: any[] }) {
@@ -292,7 +292,7 @@ export function topscript(script: string, context: ObjectLiteral = {}): any {
       });
 
       return visitNode({ node, scope: newScope });
-    }
+    };
   }
 
   function visitFunctionBody({ node, scope, params }: { node: AnyNode, scope: object, params: any[] }) {

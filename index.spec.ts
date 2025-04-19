@@ -129,8 +129,8 @@ describe('topscript', () => {
       x
     `)).toBe(2);
 
-    expect(topscript(`if (true) { 1 } else { 2 }`)).toBeUndefined()
-    expect(topscript(`if (true) 1`)).toBeUndefined()
+    expect(topscript('if (true) { 1 } else { 2 }')).toBeUndefined();
+    expect(topscript('if (true) 1')).toBeUndefined();
   });
 
   it('evaluates with context', () => {
