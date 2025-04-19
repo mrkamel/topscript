@@ -20,6 +20,7 @@
   },
   "scripts": {
     "test": "vitest",
-    "lint": "eslint *.ts"
+    "lint": "eslint *.ts",
+    "build": "tsc --declaration --outDir dist index.ts"
   }
 }

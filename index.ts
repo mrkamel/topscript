@@ -29,6 +29,9 @@ function redefineProperty(obj: object, key: PropertyKey, properties: Parameters<
   redefineProperty(Object.getPrototypeOf(obj), key, properties);
 }
 
+// Checks if an object has a property, even if it doesn't exist on the
+// object itself, but on a parent, i.e. a prototype.
+
 function hasProperty(obj: object, key: PropertyKey): boolean {
   if (obj.hasOwnProperty(key)) return true;
   if (Object.getPrototypeOf(obj) === null) return false;
@@ -201,13 +204,25 @@ export function topscript(script: string, context: ObjectLiteral = {}): any {
   }
 
   function visitAssignmentExpression({ expression, scope }: { expression: AssignmentExpression, scope: object }): any {
-    if (expression.left.type !== 'Identifier') throw new Error(`Unknown left side of assignment ${expression.left.type}`);
-
     switch (expression.operator) {
       case '=':
-        if (!(expression.left.name in scope)) throw new Error(`${expression.left.name} is unknown`);
-        redefineProperty(scope, expression.left.name, { value: visitNode({ node: expression.right, scope }) });
-        return;
+        if (expression.left.type === 'Identifier') {
+          if (!(expression.left.name in scope)) throw new Error(`${expression.left.name} is unknown`);
+          redefineProperty(scope, expression.left.name, { value: visitNode({ node: expression.right, scope }) });
+          return;
+        } else if (expression.left.type === 'MemberExpression') {
+          const object = visitNode({ node: expression.left.object, scope });
+
+          if (expression.left.property.type === 'Identifier') {
+            redefineProperty(object, expression.left.property.name, { value: visitNode({ node: expression.right, scope }) });
+            return;
+          } else {
+            redefineProperty(object, visitNode({ node: expression.left.property, scope }), { value: visitNode({ node: expression.right, scope }) });
+            return;
+          }
+        } else {
+          throw new Error(`Unknown left side of assignment ${expression.left.type}`);
+        }
       default:
         throw new Error(`Unknown assignment operator ${expression.operator}`);
     }
@@ -218,6 +233,8 @@ export function topscript(script: string, context: ObjectLiteral = {}): any {
 
     switch (expression.callee.type) {
       case 'MemberExpression': {
+        if(expression.callee.optional) throw new Error('Optional chaining is not supported');
+
         const object = visitNode({ node: expression.callee.object, scope });
         const fn = visitNode({ node: expression.callee.property, scope: object });
 
@@ -227,7 +244,6 @@ export function topscript(script: string, context: ObjectLiteral = {}): any {
       };
       case 'Identifier': {
         const fn = (scope as ObjectLiteral)[expression.callee.name];
-
         if (typeof fn !== 'function') throw new Error(`${expression.callee.name} is not a function`);
 
         return fn(...args);
@@ -332,10 +348,6 @@ export function topscript(script: string, context: ObjectLiteral = {}): any {
   function visitMemberExpression({ node, scope }: { node: MemberExpression, scope: object }): any {
     const object = visitNode({ node: node.object, scope });
 
-    if (object === null || object === undefined) {
-      throw new Error('Cannot read properties of ' + object);
-    }
-
     if (node.computed) {
       const property = visitNode({ node: node.property, scope });
       return object[property];
@@ -410,7 +422,7 @@ export function topscript(script: string, context: ObjectLiteral = {}): any {
     };
   }
 
-  const tree = parse(script, { ecmaVersion: 2022 }).body;
+  const tree = parse(script, { ecmaVersion: 2019 }).body;
   const scope = createScope(context);
   const res = tree.map((node: AnyNode) => visitNode({ node, scope }));
 
