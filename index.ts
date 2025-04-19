@@ -256,7 +256,7 @@ export function topscript(script: string, context: ObjectLiteral = {}): any {
     }
   }
 
-  function visitLiteral({ node, scope }: { node: Literal, scope: object }) {
+  function visitLiteral({ node }: { node: Literal }) {
     return node.value
   }
 
@@ -374,7 +374,7 @@ export function topscript(script: string, context: ObjectLiteral = {}): any {
       case 'LogicalExpression':
         return visitLogicalExpression({ expression: node, scope });
       case 'Literal':
-        return visitLiteral({ node, scope });
+        return visitLiteral({ node });
       case 'Identifier':
         if (!hasProperty(scope, node.name)) throw new Error(`Unknown variable ${node.name}`);
 
