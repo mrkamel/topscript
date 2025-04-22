@@ -3,6 +3,8 @@ import {
   BinaryExpression, LogicalExpression, UnaryExpression, AssignmentExpression, CallExpression,
   VariableDeclaration, Literal, BlockStatement, ArrowFunctionExpression, FunctionDeclaration,
   FunctionExpression, ReturnStatement, Pattern, AnonymousFunctionDeclaration, MemberExpression,
+  Expression,
+  Statement,
 } from 'acorn';
 
 type ObjectLiteral = { [key: string]: any };
@@ -10,9 +12,7 @@ type ObjectLiteral = { [key: string]: any };
 function createScope(parent?: object) {
   const res: ObjectLiteral = {};
 
-  if (parent) {
-    Object.setPrototypeOf(res, parent);
-  }
+  if (parent) Object.setPrototypeOf(res, parent);
 
   return res;
 }
@@ -105,26 +105,25 @@ export function topscript(script: string, context: ObjectLiteral = {}): any {
   }
 
   function visitIfStatement({ node, scope }: { node: IfStatement, scope: object }) {
-    if (visitNode({ node: node.test, scope })) {
-      switch (node.consequent.type) {
+    function visitConditionNode(conditionNode: Expression | Statement) {
+      switch (conditionNode.type) {
         case 'BlockStatement':
-          visitBlockStatement({ node: node.consequent, scope })();
+          visitBlockStatement({ node: conditionNode, scope })();
           return;
         default:
-          visitNode({ node: node.consequent, scope });
+          visitNode({ node: conditionNode, scope });
           return;
       }
-    } else {
-      if (node.alternate) {
-        switch (node.alternate.type) {
-          case 'BlockStatement':
-            visitBlockStatement({ node: node.alternate, scope })();
-            return;
-          default:
-            visitNode({ node: node.alternate, scope });
-            return;
-        }
-      }
+    }
+
+    if (visitNode({ node: node.test, scope })) {
+      visitConditionNode(node.consequent);
+      return;
+    }
+
+    if (node.alternate) {
+      visitConditionNode(node.alternate);
+      return;
     }
   }
 
@@ -133,46 +132,26 @@ export function topscript(script: string, context: ObjectLiteral = {}): any {
     const right = () => visitNode({ node: expression.right, scope });
 
     switch (expression.operator) {
-      case '*':
-        return left() * right();
-      case '/':
-        return left() / right();
-      case '-':
-        return left() - right();
-      case '+':
-        return left() + right();
-      case '%':
-        return left() % right();
-      case '**':
-        return left() ** right();
-      case '^':
-        return left() ^ right();
-      case '&':
-        return left() & right();
-      case '|':
-        return left() | right();
-      case '<':
-        return left() < right();
-      case '<=':
-        return left() <= right();
-      case '>':
-        return left() > right();
-      case '>=':
-        return left() >= right();
-      case '<<':
-        return left() << right();
-      case '>>':
-        return left() >> right();
-      case '==':
-        return left() == right();
-      case '===':
-        return left() === right();
-      case '!=':
-        return left() != right();
-      case '!==':
-        return left() !== right();
-      default:
-        throw new Error(`Unknown binary operator ${expression.operator}`);
+      case '*': return left() * right();
+      case '/': return left() / right();
+      case '-': return left() - right();
+      case '+': return left() + right();
+      case '%': return left() % right();
+      case '**': return left() ** right();
+      case '^': return left() ^ right();
+      case '&': return left() & right();
+      case '|': return left() | right();
+      case '<': return left() < right();
+      case '<=': return left() <= right();
+      case '>': return left() > right();
+      case '>=': return left() >= right();
+      case '<<': return left() << right();
+      case '>>': return left() >> right();
+      case '==': return left() == right();
+      case '===': return left() === right();
+      case '!=': return left() != right();
+      case '!==': return left() !== right();
+      default: throw new Error(`Unknown binary operator ${expression.operator}`);
     }
   }
 
@@ -181,23 +160,17 @@ export function topscript(script: string, context: ObjectLiteral = {}): any {
     const right = () => visitNode({ node: expression.right, scope });
 
     switch (expression.operator) {
-      case '&&':
-        return left() && right();
-      case '||':
-        return left() || right();
-      default:
-        throw new Error(`Unknown logical operator ${expression.operator}`);
+      case '&&': return left() && right();
+      case '||': return left() || right();
+      default: throw new Error(`Unknown logical operator ${expression.operator}`);
     }
   }
 
   function visitUnaryExpression({ expression, scope }: { expression: UnaryExpression, scope: object }): any {
     switch (expression.operator) {
-      case '-':
-        return -visitNode({ node: expression.argument, scope });
-      case '+':
-        return +visitNode({ node: expression.argument, scope });
-      case '!':
-        return !visitNode({ node: expression.argument, scope });
+      case '-': return -visitNode({ node: expression.argument, scope });
+      case '+': return +visitNode({ node: expression.argument, scope });
+      case '!': return !visitNode({ node: expression.argument, scope });
       default:
         throw new Error(`Unknown unary operator ${expression.operator}`);
     }
@@ -313,10 +286,8 @@ export function topscript(script: string, context: ObjectLiteral = {}): any {
 
   function visitFunctionBody({ node, scope, params }: { node: AnyNode, scope: object, params: any[] }) {
     switch (node.type) {
-      case 'BlockStatement':
-        return visitBlockStatement({ node: node as BlockStatement, scope, params });
-      default:
-        return visitArrowFunctionBody({ node, scope, params });
+      case 'BlockStatement': return visitBlockStatement({ node: node as BlockStatement, scope, params });
+      default: return visitArrowFunctionBody({ node, scope, params });
     }
   }
 
@@ -377,48 +348,29 @@ export function topscript(script: string, context: ObjectLiteral = {}): any {
 
   function visitNode({ node, scope }: { node: AnyNode, scope: object }): any {
     switch (node.type) {
-      case 'ExpressionStatement':
-        return visitExpressionStatement({ node, scope });
-      case 'BinaryExpression':
-        return visitBinaryExpression({ expression: node, scope });
-      case 'UnaryExpression':
-        return visitUnaryExpression({ expression: node, scope });
-      case 'LogicalExpression':
-        return visitLogicalExpression({ expression: node, scope });
-      case 'Literal':
-        return visitLiteral({ node });
+      case 'ExpressionStatement': return visitExpressionStatement({ node, scope });
+      case 'BinaryExpression': return visitBinaryExpression({ expression: node, scope });
+      case 'UnaryExpression': return visitUnaryExpression({ expression: node, scope });
+      case 'LogicalExpression': return visitLogicalExpression({ expression: node, scope });
+      case 'Literal': return visitLiteral({ node });
       case 'Identifier':
         if (!hasProperty(scope, node.name)) throw new Error(`Unknown variable ${node.name}`);
 
         return (scope as ObjectLiteral)[node.name];
-      case 'VariableDeclaration':
-        return visitVariableDeclaration({ node, scope });
-      case 'FunctionExpression':
-        return visitFunctionExpression({ node, scope });
-      case 'FunctionDeclaration':
-        return visitFunctionDeclaration({ node, scope });
-      case 'ArrowFunctionExpression':
-        return visitArrowFunctionExpression({ node, scope });
-      case 'EmptyStatement':
-        return;
-      case 'ReturnStatement':
-        throw new ReturnException(visitReturnStatement({ node, scope }));
-      case 'CallExpression':
-        return visitCallExpression({ expression: node, scope });
-      case 'AssignmentExpression':
-        return visitAssignmentExpression({ expression: node, scope });
-      case 'ArrayExpression':
-        return visitArrayExpression({ expression: node, scope });
-      case 'ObjectExpression':
-        return visitObjectExpression({ expression: node, scope });
-      case 'IfStatement':
-        return visitIfStatement({ node, scope });
-      case 'BlockStatement':
-        return visitBlockStatement({ node: node, scope })();
-      case 'MemberExpression':
-        return visitMemberExpression({ node, scope });
-      default:
-        throw new Error(`Unknown node type ${node.type}`);
+      case 'VariableDeclaration': return visitVariableDeclaration({ node, scope });
+      case 'FunctionExpression': return visitFunctionExpression({ node, scope });
+      case 'FunctionDeclaration': return visitFunctionDeclaration({ node, scope });
+      case 'ArrowFunctionExpression': return visitArrowFunctionExpression({ node, scope });
+      case 'EmptyStatement': return;
+      case 'ReturnStatement': throw new ReturnException(visitReturnStatement({ node, scope }));
+      case 'CallExpression': return visitCallExpression({ expression: node, scope });
+      case 'AssignmentExpression': return visitAssignmentExpression({ expression: node, scope });
+      case 'ArrayExpression': return visitArrayExpression({ expression: node, scope });
+      case 'ObjectExpression': return visitObjectExpression({ expression: node, scope });
+      case 'IfStatement': return visitIfStatement({ node, scope });
+      case 'BlockStatement': return visitBlockStatement({ node, scope })();
+      case 'MemberExpression': return visitMemberExpression({ node, scope });
+      default: throw new Error(`Unknown node type ${node.type}`);
     };
   }
 
