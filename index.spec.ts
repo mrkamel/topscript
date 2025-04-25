@@ -386,6 +386,12 @@ describe('topscript', () => {
         delete obj.a;
         obj
       `)).toEqual({ b: 2 });
+      
+      expect(topscript(`
+        const arr = [1, 2, 3];
+        delete arr[1];
+        arr
+      `)).toEqual([1, undefined, 3]);
     });
   });
 });
