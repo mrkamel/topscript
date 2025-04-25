@@ -386,6 +386,12 @@ describe('topscript', () => {
         delete obj.a;
         obj
       `)).toEqual({ b: 2 });
+
+      expect(topscript(`
+        const obj = { a: { b: 1, c: 2 } };
+        delete obj.a.b;
+        obj
+      `)).toEqual({ a: { c: 2 } });
       
       expect(topscript(`
         const arr = [1, 2, 3];
