@@ -166,11 +166,29 @@ export function topscript(script: string, context: ObjectLiteral = {}): any {
     }
   }
 
+  function visitDelete({ node, scope }: { node: Expression, scope: object }) {
+    switch (node.type) {
+      case 'MemberExpression': {
+        const object = visitNode({ node: node.object, scope });
+
+        if (node.property.type === 'Identifier') {
+          delete object[node.property.name];
+          return;
+        } else {
+          delete object[visitNode({ node: node.property, scope })];
+          return;
+        }
+      };
+      default: throw new Error(`Unknown delete type ${node.type}`);
+    }
+  }
+
   function visitUnaryExpression({ expression, scope }: { expression: UnaryExpression, scope: object }): any {
     switch (expression.operator) {
       case '-': return -visitNode({ node: expression.argument, scope });
       case '+': return +visitNode({ node: expression.argument, scope });
       case '!': return !visitNode({ node: expression.argument, scope });
+      case 'delete': return visitDelete({ node: expression.argument, scope });
       default:
         throw new Error(`Unknown unary operator ${expression.operator}`);
     }

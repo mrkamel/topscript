@@ -379,5 +379,13 @@ describe('topscript', () => {
         sum(1, 2, 3, 4);
       `)).toBe(4);
     });
+
+    it('correctly handles the delete operator', () => {
+      expect(topscript(`
+        const obj = { a: 1, b: 2 };
+        delete obj.a;
+        obj
+      `)).toEqual({ b: 2 });
+    });
   });
 });
