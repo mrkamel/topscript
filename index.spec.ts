@@ -72,6 +72,12 @@ describe('topscript', () => {
     `)).toEqual({ a: { bc: 2 } });
   });
 
+  it('evaluates iifs', () => {
+    expect(topscript('(() => 42)()')).toBe(42);
+    expect(topscript('((x) => { return x; })(42)')).toBe(42);
+    expect(topscript('(function(x) { return x; })(42)')).toBe(42);
+  });
+
   it('evaluates array assignments', () => {
     expect(topscript(`
       const arr = [1, 2, 3];
@@ -111,6 +117,12 @@ describe('topscript', () => {
 
   it('evaluates string concatenation', () => {
     expect(topscript('"hello" + " " + "world"')).toBe('hello world');
+  });
+
+  it('evaluates string interpolation', () => {
+    expect(topscript('`${"hello"}, ${"world"}`')).toBe('hello, world');
+    expect(topscript('`hello ${1 + 2}`')).toBe('hello 3');
+    expect(topscript('(() => `hello, ${"world"}`)()')).toBe('hello, world');
   });
 
   it('evaluates built-in member functions', () => {

@@ -5,6 +5,7 @@ import {
   FunctionExpression, ReturnStatement, Pattern, AnonymousFunctionDeclaration, MemberExpression,
   Expression,
   Statement,
+  TemplateLiteral,
 } from 'acorn';
 
 type ObjectLiteral = { [key: string]: any };
@@ -239,6 +240,14 @@ export function topscript(script: string, context: ObjectLiteral = {}): any {
 
         return fn(...args);
       };
+      case 'FunctionExpression': {
+        const fn = visitFunctionBody({ node: expression.callee.body, scope, params: expression.callee.params });
+        return fn(...args);
+      };
+      case 'ArrowFunctionExpression': {
+        const fn = visitArrowFunctionBody({ node: expression.callee.body, scope, params: expression.callee.params });
+        return fn(...args);
+      };
       default:
         throw new Error(`Unknown callee type ${expression.callee.type}`);
     }
@@ -364,6 +373,16 @@ export function topscript(script: string, context: ObjectLiteral = {}): any {
     }
   }
 
+  function visitTemplateLiteral({ node, scope }: { node: TemplateLiteral, scope: object }) {
+    const quasis = node.quasis.map((quasi) => quasi.value.cooked);
+    const expressions = node.expressions.map((expression) => visitNode({ node: expression, scope }));
+
+    return quasis.reduce((acc, cur, index) => {
+      if (index === 0) return cur;
+      return acc + expressions[index - 1] + cur;
+    });
+  }
+
   function visitNode({ node, scope }: { node: AnyNode, scope: object }): any {
     switch (node.type) {
       case 'ExpressionStatement': return visitExpressionStatement({ node, scope });
@@ -388,6 +407,7 @@ export function topscript(script: string, context: ObjectLiteral = {}): any {
       case 'IfStatement': return visitIfStatement({ node, scope });
       case 'BlockStatement': return visitBlockStatement({ node, scope })();
       case 'MemberExpression': return visitMemberExpression({ node, scope });
+      case 'TemplateLiteral': return visitTemplateLiteral({ node, scope });
       default: throw new Error(`Unknown node type ${node.type}`);
     };
   }
