@@ -240,6 +240,14 @@ export function topscript(script: string, context: ObjectLiteral = {}): any {
 
         return fn(...args);
       };
+      case 'FunctionExpression': {
+        const fn = visitFunctionBody({ node: expression.callee.body, scope, params: expression.callee.params });
+        return fn(...args);
+      };
+      case 'ArrowFunctionExpression': {
+        const fn = visitArrowFunctionBody({ node: expression.callee.body, scope, params: expression.callee.params });
+        return fn(...args);
+      };
       default:
         throw new Error(`Unknown callee type ${expression.callee.type}`);
     }
