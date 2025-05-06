@@ -113,6 +113,11 @@ describe('topscript', () => {
     expect(topscript('"hello" + " " + "world"')).toBe('hello world');
   });
 
+  it('evaluates string interpolation', () => {
+    expect(topscript('`${"hello"}, ${"world"}`')).toBe('hello, world');
+    expect(topscript('`hello ${1 + 2}`')).toBe('hello 3');
+  });
+
   it('evaluates built-in member functions', () => {
     expect(topscript('"hello".length')).toBe(5);
     expect(topscript('"hello".toUpperCase()')).toBe('HELLO');
