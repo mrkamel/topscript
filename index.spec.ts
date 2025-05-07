@@ -134,6 +134,7 @@ describe('topscript', () => {
 
   it('evaluates objects', () => {
     expect(topscript('({ a: 1, b: 2 })')).toEqual({ a: 1, b: 2 });
+    expect(topscript('({ "a": 1, ["b"]: 2, [3]: 4, [`${"c"}`]: 5 })')).toEqual({ a: 1, b: 2, 3: 4, c: 5 });
 
     expect(topscript(`
       const x = { a: 1 };
