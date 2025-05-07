@@ -90,7 +90,16 @@ export function topscript(script: string, context: ObjectLiteral = {}): any {
             return;
           }
 
-          if (property.key.type !== 'Identifier') throw new Error(`Unknown key type ${property.key.type}`);
+          if (property.key.type === 'Identifier') {
+            res[property.key.name] = value;
+          } else if (property.key.type === 'Literal') {
+            if (typeof property.key.value !== 'string') throw new Error(`Unknown key type ${property.key.type}`);
+            res[property.key.value] = value;
+            return;
+          } else {
+            throw new Error(`Unknown key type ${property.key.type}`);
+          }
+
           res[property.key.name] = value;
           return;
         };
