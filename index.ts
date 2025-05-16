@@ -8,6 +8,8 @@ import {
   TemplateLiteral,
 } from 'acorn';
 
+const ECMA_VERSION = 2019;
+
 type ObjectLiteral = { [key: string]: any };
 
 function createScope(parent?: object) {
@@ -46,6 +48,10 @@ class ReturnException {
   constructor(value: object) {
     this.value = value;
   }
+}
+
+export function validate(script: string) {
+  return parse(script, { ecmaVersion: ECMA_VERSION });
 }
 
 export function topscript(script: string, context: ObjectLiteral = {}): any {
@@ -421,7 +427,7 @@ export function topscript(script: string, context: ObjectLiteral = {}): any {
     };
   }
 
-  const tree = parse(script, { ecmaVersion: 2019 }).body;
+  const tree = parse(script, { ecmaVersion: ECMA_VERSION }).body;
   const scope = createScope(context);
   const res = tree.map((node: AnyNode) => visitNode({ node, scope }));
 
