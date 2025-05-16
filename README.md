@@ -11,6 +11,8 @@ npm install topscript
 
 ## Usage
 
+To execute a script, simply do:
+
 ```js
 import { topscript } from 'topscript';
 
@@ -26,6 +28,15 @@ topscript(`
 `) // => 3
 
 topscript('[1, 2, 3].slice(1)') // => [2, 3]
+```
+
+Topscript also allows to validate a supplied script for parsing errors:
+
+```js
+import { validate } from 'topscript';
+
+parse('1 + 2') // => undefined
+parse('1 +') // throws an error
 ```
 
 ## Semantic Versioning
