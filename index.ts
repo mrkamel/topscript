@@ -427,7 +427,7 @@ export function topscript(script: string, context: ObjectLiteral = {}): any {
     };
   }
 
-  const tree = parse(script, { ecmaVersion: ECMA_VERSION }).body;
+  const tree = parse(script, { ecmaVersion: ECMA_VERSION, locations: true }).body;
   const scope = createScope(context);
   const res = tree.map((node: AnyNode) => visitNode({ node, scope }));
 

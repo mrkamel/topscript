@@ -13,6 +13,19 @@ describe('topscript', () => {
       expect(() => validate('const x = 1; x + 2; const y = 3;')).not.toThrow();
       expect(() => validate('const x = 1; x + 2; const y = { a: 1 };')).not.toThrow();
     });
+
+    it('includes the position of the error', () => {
+      let exception: any;
+
+      try {
+        validate('const x = 1; x + 2; }');
+      } catch (e: any) {
+        exception = e;
+      }
+
+      expect(exception.message).toMatch(/Unexpected token/);
+      expect(exception.loc).toEqual({ line: 1, column: 20 });
+    });
   });
 
   describe('topscript', () => {
