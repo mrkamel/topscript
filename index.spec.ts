@@ -268,10 +268,13 @@ describe('topscript', () => {
       await expect(() => topscript('const f = async () => {}')).rejects.toThrow('Async functions are not supported');
     });
     
-    it('throws when execution exceeds timeout', async () => {
-      await expect(() => 
-        topscript('while(true) {}', {}, { timeout: 100 })
-      ).rejects.toThrow('Execution timed out');
+    it('aborts execution when abort signal is triggered', async () => {
+      const controller = new AbortController();
+      const scriptPromise = topscript('while(true) {}', {}, { signal: controller.signal });
+      
+      setTimeout(() => controller.abort(), 100);
+      
+      await expect(scriptPromise).rejects.toThrow('Execution aborted');
     });
     
     it('evaluates while loops', async () => {

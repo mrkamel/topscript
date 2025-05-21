@@ -69,11 +69,9 @@ async function immediate(): Promise<void> {
   });
 }
 
-export async function topscript(script: string, context: ObjectLiteral = {}, { timeout }: { timeout?: number } = {}): Promise<any> {
-  const abortSignal = timeout ? AbortSignal.timeout(timeout) : null;
-
-  function checkAbort() {
-    if (abortSignal && abortSignal.aborted) throw new Error('Execution timed out');
+export async function topscript(script: string, context: ObjectLiteral = {}, { signal }: { signal?: AbortSignal } = {}): Promise<any> {
+  function checkSignal() {
+    if (signal && signal.aborted) throw new Error('Execution aborted');
   }
 
   async function visitExpressionStatement({ node, scope }: { node: ExpressionStatement, scope: object }): Promise<object> {
@@ -371,7 +369,7 @@ export async function topscript(script: string, context: ObjectLiteral = {}, { t
   function visitBlockStatement({ node, scope, params }: { node: BlockStatement, scope: object, params?: any[] }) {
     return async (...runtimeParams: any[]) => {
       await immediate();
-      checkAbort();
+      checkSignal();
 
       const newScope = createScope(scope);
       newScope['arguments'] = runtimeParams;
@@ -397,7 +395,7 @@ export async function topscript(script: string, context: ObjectLiteral = {}, { t
   function visitArrowFunctionBody({ node, scope, params }: { node: AnyNode, scope: object, params: any[] }) {
     return async (...runtimeParams: any[]): Promise<any> => {
       await immediate();
-      checkAbort();
+      checkSignal();
 
       const newScope = createScope(scope);
 
@@ -484,7 +482,7 @@ export async function topscript(script: string, context: ObjectLiteral = {}, { t
   async function visitWhileStatement({ node, scope }: { node: WhileStatement, scope: object }) {
     while (await visitNode({ node: node.test, scope })) {
       await immediate();
-      checkAbort();
+      checkSignal();
 
       const fn = visitBlockStatement({ node: node.body as BlockStatement, scope });
       await fn();
