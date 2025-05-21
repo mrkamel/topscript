@@ -25,7 +25,7 @@ function createScope(parent?: object) {
 // object itself, but on a parent, i.e. a prototype.
 
 function redefineProperty(obj: object, key: PropertyKey, properties: Parameters<typeof Object.defineProperty>[2]) {
-  if (obj.hasOwnProperty(key)){
+  if (obj.hasOwnProperty(key) || Object.getPrototypeOf(obj) === null) {
     Object.defineProperty(obj, key, properties);
     return;
   }
@@ -127,6 +127,7 @@ export async function topscript(script: string, context: ObjectLiteral = {}, { s
 
           if (property.key.type === 'Identifier') {
             res[property.key.name] = value;
+            break;
           } else if (property.key.type === 'Literal') {
             if (typeof property.key.value !== 'string') throw new Error(`Unknown key type ${property.key.type}`);
             res[property.key.value] = value;
@@ -134,9 +135,6 @@ export async function topscript(script: string, context: ObjectLiteral = {}, { s
           } else {
             throw new Error(`Unknown key type ${property.key.type}`);
           }
-
-          res[property.key.name] = value;
-          break;
         };
         case 'SpreadElement':
           res = { ...res, ...(await visitNode({ node: property.argument, scope })) };
@@ -473,10 +471,11 @@ export async function topscript(script: string, context: ObjectLiteral = {}, { s
     const quasis = node.quasis.map((quasi) => quasi.value.cooked);
     const expressions = await mapSynchronous(node.expressions, async (expression) => await visitNode({ node: expression, scope }));
     
-    return quasis.reduce((acc, cur, index) => {
-      if (index === 0) return cur;
-      return acc + expressions[index - 1] + cur;
-    });
+    const result = quasis[0] || '';
+
+    return expressions.reduce((acc, expr, i) => {
+      return acc + expr + (quasis[i + 1] || '');
+    }, result);
   }
 
   async function visitWhileStatement({ node, scope }: { node: WhileStatement, scope: object }) {

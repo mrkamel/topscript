@@ -138,6 +138,26 @@ describe('topscript', () => {
       expect(await topscript('`hello ${1 + 2}`')).toBe('hello 3');
       expect(await topscript('(() => `hello, ${"world"}`)()')).toBe('hello, world');
     });
+    
+    it('evaluates complex template literals correctly', async () => {
+      expect(await topscript('``')).toBe('');
+      expect(await topscript('`just text`')).toBe('just text');
+      expect(await topscript('`${1}${2}${3}`')).toBe('123');
+      expect(await topscript('`${1}${2}${3}suffix`')).toBe('123suffix');
+      expect(await topscript('`prefix${1}${2}${3}`')).toBe('prefix123');
+      expect(await topscript('`${`nested ${1 + 2}`}`')).toBe('nested 3');
+
+      expect(await topscript(`
+        function getWord() { return "dynamic"; }
+        \`This is a \${getWord()} template literal\`
+      `)).toBe('This is a dynamic template literal');
+
+      expect(await topscript(`
+        const obj = { name: "World" };
+        const arr = ["Hello"];
+        \`\${arr[0]}, \${obj.name}!\`
+      `)).toBe('Hello, World!');
+    });
 
     it('evaluates built-in member functions', async () => {
       expect(await topscript('"hello".length')).toBe(5);
