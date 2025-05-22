@@ -100,7 +100,7 @@ export async function topscript(script: string, context: ObjectLiteral = {}, { s
     return res;
   }
 
-  async function mapSynchronous<T, U>(array: T[], fn: (item: T) => Promise<U>): Promise<U[]> {
+  async function mapAsync<T, U>(array: T[], fn: (item: T) => Promise<U>): Promise<U[]> {
     const res: U[] = [];
 
     for (const item of array) {
@@ -307,7 +307,7 @@ export async function topscript(script: string, context: ObjectLiteral = {}, { s
   }
 
   async function visitCallExpression({ expression, scope }: { expression: CallExpression, scope: object }): Promise<any> {
-    const args = await mapSynchronous(expression.arguments, async (argument) => await visitNode({ node: argument, scope }));
+    const args = await mapAsync(expression.arguments, async (argument) => await visitNode({ node: argument, scope }));
 
     switch (expression.callee.type) {
       case 'MemberExpression': {
@@ -379,7 +379,7 @@ export async function topscript(script: string, context: ObjectLiteral = {}, { s
       }
 
       try {
-        const res = await mapSynchronous(node.body, async (item) => await visitNode({ node: item, scope: newScope }));
+        const res = await mapAsync(node.body, async (item) => await visitNode({ node: item, scope: newScope }));
 
         return res[res.length - 1];
       } catch (error) {
@@ -469,7 +469,7 @@ export async function topscript(script: string, context: ObjectLiteral = {}, { s
 
   async function visitTemplateLiteral({ node, scope }: { node: TemplateLiteral, scope: object }) {
     const quasis = node.quasis.map((quasi) => quasi.value.cooked);
-    const expressions = await mapSynchronous(node.expressions, async (expression) => await visitNode({ node: expression, scope }));
+    const expressions = await mapAsync(node.expressions, async (expression) => await visitNode({ node: expression, scope }));
     
     const result = quasis[0] || '';
 
@@ -520,7 +520,7 @@ export async function topscript(script: string, context: ObjectLiteral = {}, { s
 
   const tree = parse(script, { ecmaVersion: ECMA_VERSION }).body;
   const scope = createScope(context);
-  const res = await mapSynchronous(tree, async (node) => await visitNode({ node, scope }));
+  const res = await mapAsync(tree, async (node) => await visitNode({ node, scope }));
 
   return res[res.length - 1];
 }
