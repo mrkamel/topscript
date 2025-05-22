@@ -11,15 +11,15 @@ npm install topscript
 
 ## Usage
 
-To execute a script, simply do:
+To execute a script, simply do (note that `topscript` is an async function and must be awaited):
 
 ```js
 import { topscript } from 'topscript';
 
-topscript('1 + 2') // => 3;
-topscript('log("hello, world!")', { log: console.log }) // => undefined
+await topscript('1 + 2') // => 3;
+await topscript('log("hello, world!")', { log: console.log }) // => undefined
 
-topscript(`
+await topscript(`
   function add(a, b) {
     return a + b;
   }
@@ -27,7 +27,7 @@ topscript(`
   add(1, 2)
 `) // => 3
 
-topscript('[1, 2, 3].slice(1)') // => [2, 3]
+await topscript('[1, 2, 3].slice(1)') // => [2, 3]
 ```
 
 Topscript also allows to validate a supplied script for parsing errors:
@@ -35,9 +35,47 @@ Topscript also allows to validate a supplied script for parsing errors:
 ```js
 import { validate } from 'topscript';
 
-parse('1 + 2') // => undefined
-parse('1 +') // throws an error
+validate('1 + 2') // => undefined
+validate('1 +') // throws an error
 ```
+
+## Supported Features
+
+Topscript supports a wide range of JavaScript features:
+
+- Variables (const, let)
+- Literals (strings, numbers, booleans, objects, arrays)
+- Functions (declarations, expressions, arrow functions)
+- Control flow (if, else, while)
+- Template literals and string interpolation
+- Closures and nested scopes
+- Compound assignment operators (+=, -=, etc)
+- Basic array and object operations
+- Rest parameters
+
+## Execution Safety Features
+
+Topscript includes several safety mechanisms:
+
+- **Abort Signal Support**: You can abort long-running scripts using an AbortSignal
+  ```js
+  const controller = new AbortController();
+  const scriptPromise = await topscript('while(true) {}', {}, { signal: controller.signal });
+
+  controller.abort(); // Will stop the execution
+  ```
+
+- **Execution Yield**: Long-running scripts periodically yield control back to the event loop to prevent blocking
+
+## Unsupported Features
+
+Some JavaScript features are not supported:
+
+- Async/await functions
+- Optional chaining
+- Destructuring assignments
+- Classes
+- Try/catch blocks
 
 ## Semantic Versioning
 
