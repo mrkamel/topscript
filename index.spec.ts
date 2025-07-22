@@ -17,69 +17,69 @@ describe('topscript', () => {
 
   describe('topscript', () => {
     it('evaluates literals', async () => {
-      expect(await topscript('42')).toBe(42);
-      expect(await topscript('"hello"')).toBe('hello');
-      expect(await topscript('true')).toBe(true);
-      expect(await topscript('false')).toBe(false);
-      expect(await topscript('null')).toBe(null);
+      expect(topscript('42')).toBe(42);
+      expect(topscript('"hello"')).toBe('hello');
+      expect(topscript('true')).toBe(true);
+      expect(topscript('false')).toBe(false);
+      expect(topscript('null')).toBe(null);
     });
 
     it('evaluates binary expressions', async () => {
-      expect(await topscript('2 + 3')).toBe(5);
-      expect(await topscript('5 - 2')).toBe(3);
-      expect(await topscript('2 * 3')).toBe(6);
-      expect(await topscript('6 / 2')).toBe(3);
-      expect(await topscript('7 % 3')).toBe(1);
-      expect(await topscript('2 ** 3')).toBe(8);
-      expect(await topscript('5 > 3')).toBe(true);
-      expect(await topscript('5 < 3')).toBe(false);
-      expect(await topscript('5 >= 5')).toBe(true);
-      expect(await topscript('5 <= 5')).toBe(true);
-      expect(await topscript('5 == 5')).toBe(true);
-      expect(await topscript('5 === 5')).toBe(true);
-      expect(await topscript('5 != 3')).toBe(true);
-      expect(await topscript('5 !== 3')).toBe(true);
+      expect(topscript('2 + 3')).toBe(5);
+      expect(topscript('5 - 2')).toBe(3);
+      expect(topscript('2 * 3')).toBe(6);
+      expect(topscript('6 / 2')).toBe(3);
+      expect(topscript('7 % 3')).toBe(1);
+      expect(topscript('2 ** 3')).toBe(8);
+      expect(topscript('5 > 3')).toBe(true);
+      expect(topscript('5 < 3')).toBe(false);
+      expect(topscript('5 >= 5')).toBe(true);
+      expect(topscript('5 <= 5')).toBe(true);
+      expect(topscript('5 == 5')).toBe(true);
+      expect(topscript('5 === 5')).toBe(true);
+      expect(topscript('5 != 3')).toBe(true);
+      expect(topscript('5 !== 3')).toBe(true);
     });
 
     it('evaluates logical expressions', async () => {
-      expect(await topscript('true && true')).toBe(true);
-      expect(await topscript('true && false')).toBe(false);
-      expect(await topscript('false || true')).toBe(true);
-      expect(await topscript('false || false')).toBe(false);
+      expect(topscript('true && true')).toBe(true);
+      expect(topscript('true && false')).toBe(false);
+      expect(topscript('false || true')).toBe(true);
+      expect(topscript('false || false')).toBe(false);
     });
 
     it('evaluates unary expressions', async() => {
-      expect(await topscript('!true')).toBe(false);
-      expect(await topscript('!false')).toBe(true);
-      expect(await topscript('-5')).toBe(-5);
-      expect(await topscript('+5')).toBe(5);
+      expect(topscript('!true')).toBe(false);
+      expect(topscript('!false')).toBe(true);
+      expect(topscript('-5')).toBe(-5);
+      expect(topscript('+5')).toBe(5);
     });
 
     it('evaluates variable declarations', async() => {
-      expect(await topscript('const x = 5; x')).toBe(5);
-      expect(await topscript('let x = 5; x')).toBe(5);
+      expect(topscript('const x = 5; x')).toBe(5);
+      expect(topscript('let x = 5; x')).toBe(5);
     });
 
     it('evaluates object assignments', async() => {
-      expect(await topscript(`
+      expect(topscript(`
         const obj = {};
         obj.a = 1;
         obj
       `)).toEqual({ a: 1 });
 
-      expect(await topscript(`
+      expect(topscript(`
         const obj = { a: 1 };
         obj.a = 2;
         obj
       `)).toEqual({ a: 2 });
 
-      expect(await topscript(`
+      expect(topscript(`
         const obj = { a: { b: 1 } };
         obj.a.b = 2;
         obj
       `)).toEqual({ a: { b: 2 } });
 
-      expect(await topscript(`
+      expect(topscript(`
         const obj = { a: { bc: 1 } };
         obj.a['b' + 'c'] = 2;
         obj
@@ -87,25 +87,25 @@ describe('topscript', () => {
     });
 
     it('evaluates iifs', async() => {
-      expect(await topscript('(() => 42)()')).toBe(42);
-      expect(await topscript('((x) => { return x; })(42)')).toBe(42);
-      expect(await topscript('(function(x) { return x; })(42)')).toBe(42);
+      expect(topscript('(() => 42)()')).toBe(42);
+      expect(topscript('((x) => { return x; })(42)')).toBe(42);
+      expect(topscript('(function(x) { return x; })(42)')).toBe(42);
     });
 
     it('evaluates array assignments', async () => {
-      expect(await topscript(`
+      expect(topscript(`
         const arr = [1, 2, 3];
         arr[0] = 4;
         arr
       `)).toEqual([4, 2, 3]);
 
-      expect(await topscript(`
+      expect(topscript(`
         const arr = [[1, 2, 3]];
         arr[0][1] = 4;
         arr
       `)).toEqual([[1, 4, 3]]);
 
-      expect(await topscript(`
+      expect(topscript(`
         const arr = [];
         arr[0] = 1;
         arr[1] = 2;
@@ -115,9 +115,9 @@ describe('topscript', () => {
     });
 
     it('evaluates arrays', async () => {
-      expect(await topscript('[1, 2, 3]')).toEqual([1, 2, 3]);
+      expect(topscript('[1, 2, 3]')).toEqual([1, 2, 3]);
 
-      expect(await topscript(`
+      expect(topscript(`
         const x = [1, 2];
         const y = [...x, 3];
         y
@@ -125,34 +125,38 @@ describe('topscript', () => {
     });
 
     it('evaluates array access', async() => {
-      expect(await topscript('[1, 2, 3][0]')).toBe(1);
-      expect(await topscript('[1, 2, 3][1]')).toBe(2);
+      expect(topscript('[1, 2, 3][0]')).toBe(1);
+      expect(topscript('[1, 2, 3][1]')).toBe(2);
+    });
+
+    it('evaluates array methods', async () => {
+      expect(topscript('[1, 2, 3].map((x) => x + 1)')).toEqual([2, 3, 4]);
     });
 
     it('evaluates string concatenation', async () => {
-      expect(await topscript('"hello" + " " + "world"')).toBe('hello world');
+      expect(topscript('"hello" + " " + "world"')).toBe('hello world');
     });
 
     it('evaluates string interpolation', async () => {
-      expect(await topscript('`${"hello"}, ${"world"}`')).toBe('hello, world');
-      expect(await topscript('`hello ${1 + 2}`')).toBe('hello 3');
-      expect(await topscript('(() => `hello, ${"world"}`)()')).toBe('hello, world');
+      expect(topscript('`${"hello"}, ${"world"}`')).toBe('hello, world');
+      expect(topscript('`hello ${1 + 2}`')).toBe('hello 3');
+      expect(topscript('(() => `hello, ${"world"}`)()')).toBe('hello, world');
     });
     
     it('evaluates complex template literals correctly', async () => {
-      expect(await topscript('``')).toBe('');
-      expect(await topscript('`just text`')).toBe('just text');
-      expect(await topscript('`${1}${2}${3}`')).toBe('123');
-      expect(await topscript('`${1}${2}${3}suffix`')).toBe('123suffix');
-      expect(await topscript('`prefix${1}${2}${3}`')).toBe('prefix123');
-      expect(await topscript('`${`nested ${1 + 2}`}`')).toBe('nested 3');
+      expect(topscript('``')).toBe('');
+      expect(topscript('`just text`')).toBe('just text');
+      expect(topscript('`${1}${2}${3}`')).toBe('123');
+      expect(topscript('`${1}${2}${3}suffix`')).toBe('123suffix');
+      expect(topscript('`prefix${1}${2}${3}`')).toBe('prefix123');
+      expect(topscript('`${`nested ${1 + 2}`}`')).toBe('nested 3');
 
-      expect(await topscript(`
+      expect(topscript(`
         function getWord() { return "dynamic"; }
         \`This is a \${getWord()} template literal\`
       `)).toBe('This is a dynamic template literal');
 
-      expect(await topscript(`
+      expect(topscript(`
         const obj = { name: "World" };
         const arr = ["Hello"];
         \`\${arr[0]}, \${obj.name}!\`
@@ -160,42 +164,42 @@ describe('topscript', () => {
     });
 
     it('evaluates built-in member functions', async () => {
-      expect(await topscript('"hello".length')).toBe(5);
-      expect(await topscript('"hello".toUpperCase()')).toBe('HELLO');
-      expect(await topscript('"hello".indexOf("e")')).toBe(1);
-      expect(await topscript('"hello".slice(1, 4)')).toBe('ell');
+      expect(topscript('"hello".length')).toBe(5);
+      expect(topscript('"hello".toUpperCase()')).toBe('HELLO');
+      expect(topscript('"hello".indexOf("e")')).toBe(1);
+      expect(topscript('"hello".slice(1, 4)')).toBe('ell');
     });
 
     it('evaluates objects', async () => {
-      expect(await topscript('({ a: 1, b: 2 })')).toEqual({ a: 1, b: 2 });
-      expect(await topscript('({ "a": 1, ["b"]: 2, [3]: 4, [`${"c"}`]: 5 })')).toEqual({ a: 1, b: 2, 3: 4, c: 5 });
+      expect(topscript('({ a: 1, b: 2 })')).toEqual({ a: 1, b: 2 });
+      expect(topscript('({ "a": 1, ["b"]: 2, [3]: 4, [`${"c"}`]: 5 })')).toEqual({ a: 1, b: 2, 3: 4, c: 5 });
 
-      expect(await topscript(`
+      expect(topscript(`
         const x = { a: 1 };
         const y = { ...x, b: 2 };
         y
       `)).toEqual({ a: 1, b: 2 });
 
-      expect(await topscript('const obj = { a: { b() { return 1; } } }; obj.a.b()')).toBe(1);
+      expect(topscript('const obj = { a: { b() { return 1; } } }; obj.a.b()')).toBe(1);
     });
 
     it('does not support optional chaining', async () => {
-      await expect(() => topscript('({ a: 1 }).b?.c')).rejects.toThrow(/Unexpected token/);
+      expect(() => topscript('({ a: 1 }).b?.c')).toThrow(/Unexpected token/);
     });
 
     it('does not support destructuring', async () => {
-      await expect(() => topscript('const { a } = { a: 1 }; a')).rejects.toThrow('Unknown variable declaration ObjectPattern');
+      expect(() => topscript('const { a } = { a: 1 }; a')).toThrow('Unknown variable declaration ObjectPattern');
     });
 
     it('allows object property access', async () => {
-      expect(await topscript('({ a: 1, b: 2 }).a')).toBe(1);
-      expect(await topscript('({ a: 1, b: 2 })["a"]')).toBe(1);
-      expect(await topscript('({ a: 1, b: 2 }).b')).toBe(2);
-      expect(await topscript('({ a: 1, b: 2 })["b"]')).toBe(2);
+      expect(topscript('({ a: 1, b: 2 }).a')).toBe(1);
+      expect(topscript('({ a: 1, b: 2 })["a"]')).toBe(1);
+      expect(topscript('({ a: 1, b: 2 }).b')).toBe(2);
+      expect(topscript('({ a: 1, b: 2 })["b"]')).toBe(2);
     });
 
     it('evaluates function declarations', async () => {
-      expect(await topscript(`
+      expect(topscript(`
         function add(a, b) {
           return a + b;
         }
@@ -205,14 +209,14 @@ describe('topscript', () => {
     });
 
     it('evaluates arrow functions', async () => {
-      expect(await topscript(`
+      expect(topscript(`
         const add = (a, b) => a + b;
         add(2, 3)
       `)).toBe(5);
     });
 
     it('evaluates if statements', async () => {
-      expect(await topscript(`
+      expect(topscript(`
         let x = 0;
 
         if (true) {
@@ -222,7 +226,7 @@ describe('topscript', () => {
         x
       `)).toBe(1);
 
-      expect(await topscript(`
+      expect(topscript(`
         let x = 0;
 
         if (false) {
@@ -234,7 +238,7 @@ describe('topscript', () => {
         x
       `)).toBe(2);
 
-      expect(await topscript(`
+      expect(topscript(`
         let x = 0;
 
         if (false) {
@@ -246,7 +250,7 @@ describe('topscript', () => {
         x
       `)).toBe(2);
 
-      expect(await topscript(`
+      expect(topscript(`
         let x = 0;
 
         if (false) {
@@ -260,17 +264,17 @@ describe('topscript', () => {
         x
       `)).toBe(3);
 
-      expect(await topscript('if (true) { 1 } else { 2 }')).toBeUndefined();
-      expect(await topscript('if (true) 1')).toBeUndefined();
+      expect(topscript('if (true) { 1 } else { 2 }')).toBeUndefined();
+      expect(topscript('if (true) 1')).toBeUndefined();
     });
 
     it('evaluates with context', async () => {
-      expect(await topscript('x + 5', { x: 10 })).toBe(15);
-      expect(await topscript('greet(name)', { greet: (name: string) => `hello ${name}`, name: 'user' })).toBe('hello user');
+      expect(topscript('x + 5', { x: 10 })).toBe(15);
+      expect(topscript('greet(name)', { greet: (name: string) => `hello ${name}`, name: 'user' })).toBe('hello user');
     });
 
     it('handles rest parameters', async () => {
-      expect(await topscript(`
+      expect(topscript(`
         function sum(...nums) {
           return nums.reduce((acc, num) => acc + num, 0);
         }
@@ -280,25 +284,20 @@ describe('topscript', () => {
     });
 
     it('throws on unknown variables', async () => {
-      await expect(() => topscript('unknownVar')).rejects.toThrow('Unknown variable unknownVar');
+      expect(() => topscript('unknownVar')).toThrow('Unknown variable unknownVar');
     });
 
     it('throws on unsupported features', async () => {
-      await expect(() => topscript('async function f() {}')).rejects.toThrow('Async functions are not supported');
-      await expect(() => topscript('const f = async () => {}')).rejects.toThrow('Async functions are not supported');
+      expect(() => topscript('async function f() {}')).toThrow('Async functions are not supported');
+      expect(() => topscript('const f = async () => {}')).toThrow('Async functions are not supported');
     });
-    
+
     it('aborts execution when abort signal is triggered', async () => {
-      const controller = new AbortController();
-      const scriptPromise = topscript('while(true) {}', {}, { signal: controller.signal });
-      
-      setTimeout(() => controller.abort(), 100);
-      
-      await expect(scriptPromise).rejects.toThrow('Execution aborted');
+      expect(() => topscript('while(true) {}', {}, { timeout: 100 })).toThrow('Execution timed out');
     });
-    
+
     it('evaluates while loops', async () => {
-      expect(await topscript(`
+      expect(topscript(`
         let i = 0;
         let sum = 0;
         
@@ -310,7 +309,7 @@ describe('topscript', () => {
         sum
       `)).toBe(10);
       
-      expect(await topscript(`
+      expect(topscript(`
         let i = 10;
         
         while (i > 0) {
@@ -320,7 +319,7 @@ describe('topscript', () => {
         i
       `)).toBe(0);
       
-      expect(await topscript(`
+      expect(topscript(`
         const arr = [];
         let i = 0;
         
@@ -334,32 +333,32 @@ describe('topscript', () => {
     });
     
     it('evaluates compound assignment operators', async () => {
-      expect(await topscript('let x = 5; x += 3; x')).toBe(8);
-      expect(await topscript('let x = 5; x -= 3; x')).toBe(2);
-      expect(await topscript('let x = 5; x *= 3; x')).toBe(15);
-      expect(await topscript('let x = 6; x /= 3; x')).toBe(2);
-      expect(await topscript('let x = 7; x %= 3; x')).toBe(1);
-      expect(await topscript('let x = 2; x **= 3; x')).toBe(8);
+      expect(topscript('let x = 5; x += 3; x')).toBe(8);
+      expect(topscript('let x = 5; x -= 3; x')).toBe(2);
+      expect(topscript('let x = 5; x *= 3; x')).toBe(15);
+      expect(topscript('let x = 6; x /= 3; x')).toBe(2);
+      expect(topscript('let x = 7; x %= 3; x')).toBe(1);
+      expect(topscript('let x = 2; x **= 3; x')).toBe(8);
       
-      expect(await topscript('let x = 5; x &= 3; x')).toBe(1);
-      expect(await topscript('let x = 5; x |= 3; x')).toBe(7);
-      expect(await topscript('let x = 5; x ^= 3; x')).toBe(6);
-      expect(await topscript('let x = 5; x <<= 1; x')).toBe(10);
-      expect(await topscript('let x = 5; x >>= 1; x')).toBe(2);
+      expect(topscript('let x = 5; x &= 3; x')).toBe(1);
+      expect(topscript('let x = 5; x |= 3; x')).toBe(7);
+      expect(topscript('let x = 5; x ^= 3; x')).toBe(6);
+      expect(topscript('let x = 5; x <<= 1; x')).toBe(10);
+      expect(topscript('let x = 5; x >>= 1; x')).toBe(2);
       
-      expect(await topscript(`
+      expect(topscript(`
         const obj = { a: 5 };
         obj.a += 3;
         obj
       `)).toEqual({ a: 8 });
       
-      expect(await topscript(`
+      expect(topscript(`
         const arr = [1, 2, 3];
         arr[1] *= 3;
         arr
       `)).toEqual([1, 6, 3]);
       
-      expect(await topscript(`
+      expect(topscript(`
         const obj = { value: 5 };
         obj['value'] += 3;
         obj
@@ -368,7 +367,7 @@ describe('topscript', () => {
 
     describe('scope', () => {
       it('creates a new scope for block statements', async () => {
-        expect(await topscript(`
+        expect(topscript(`
           let x = 1;
           { let x = 2; }
           x
@@ -376,14 +375,14 @@ describe('topscript', () => {
       });
 
       it('supports variable shadowing', async () => {
-        expect(await topscript(`
+        expect(topscript(`
           let x = 1;
           { let x = 2; x; }
         `)).toBe(2);
       });
 
       it('creates new scope for functions', async () => {
-        expect(await topscript(`
+        expect(topscript(`
           let x = 1;
 
           function f() {
@@ -396,7 +395,7 @@ describe('topscript', () => {
       });
 
       it('supports accessing parent scope variables', async () => {
-        expect(await topscript(`
+        expect(topscript(`
           let x = 1;
 
           function f() {
@@ -408,7 +407,7 @@ describe('topscript', () => {
       });
 
       it('keeps parent scope variables intact', async () => {
-        expect(await topscript(`
+        expect(topscript(`
           let x = 1;
 
           function f() {
@@ -421,7 +420,7 @@ describe('topscript', () => {
       });
 
       it('updates parent scope variables when no local declaration exists', async () => {
-        expect(await topscript(`
+        expect(topscript(`
           let x = 1;
 
           function f() {
@@ -434,7 +433,7 @@ describe('topscript', () => {
       });
 
       it('creates proper closures', async () => {
-        expect(await topscript(`
+        expect(topscript(`
           function createCounter() {
             let count = 0;
 
@@ -453,7 +452,7 @@ describe('topscript', () => {
       });
 
       it('supports nested function scopes', async () => {
-        expect(await topscript(`
+        expect(topscript(`
           function outer() {
             let x = 1;
 
@@ -471,7 +470,7 @@ describe('topscript', () => {
       });
 
       it('maintains separate scopes for multiple closures', async () => {
-        expect(await topscript(`
+        expect(topscript(`
           function createCounter(initial) {
             let count = initial;
 
@@ -492,7 +491,7 @@ describe('topscript', () => {
       });
 
       it('correctly handles the arguments object', async () => {
-        expect(await topscript(`
+        expect(topscript(`
           function sum() {
             let total = 0;
 
@@ -506,19 +505,19 @@ describe('topscript', () => {
       });
 
       it('correctly handles the delete operator', async () => {
-        expect(await topscript(`
+        expect(topscript(`
           const obj = { a: 1, b: 2 };
           delete obj.a;
           obj
         `)).toEqual({ b: 2 });
 
-        expect(await topscript(`
+        expect(topscript(`
           const obj = { a: { b: 1, c: 2 } };
           delete obj.a.b;
           obj
         `)).toEqual({ a: { c: 2 } });
 
-        expect(await topscript(`
+        expect(topscript(`
           const arr = [1, 2, 3];
           delete arr[1];
           arr

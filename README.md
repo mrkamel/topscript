@@ -11,15 +11,15 @@ npm install topscript
 
 ## Usage
 
-To execute a script, simply do (note that `topscript` is an async function and must be awaited):
+To execute a script, simply do:
 
 ```js
 import { topscript } from 'topscript';
 
-await topscript('1 + 2') // => 3;
-await topscript('log("hello, world!")', { log: console.log }) // => undefined
+topscript('1 + 2') // => 3;
+topscript('log("hello, world!")', { log: console.log }) // => undefined
 
-await topscript(`
+topscript(`
   function add(a, b) {
     return a + b;
   }
@@ -27,7 +27,7 @@ await topscript(`
   add(1, 2)
 `) // => 3
 
-await topscript('[1, 2, 3].slice(1)') // => [2, 3]
+topscript('[1, 2, 3].slice(1)') // => [2, 3]
 ```
 
 Topscript also allows to validate a supplied script for parsing errors:
@@ -57,15 +57,10 @@ Topscript supports a wide range of JavaScript features:
 
 Topscript includes several safety mechanisms:
 
-- **Abort Signal Support**: You can abort long-running scripts using an AbortSignal
+- **Timeout**: You can specify a execution timeout
   ```js
-  const controller = new AbortController();
-  const scriptPromise = await topscript('while(true) {}', {}, { signal: controller.signal });
-
-  controller.abort(); // Will stop the execution
+  topscript('while(true) {}', {}, { timeout: 1_000 });
   ```
-
-- **Execution Yield**: Long-running scripts periodically yield control back to the event loop to prevent blocking
 
 ## Unsupported Features
 
