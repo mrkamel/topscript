@@ -55,30 +55,20 @@ export function validate(script: string) {
   return parse(script, { ecmaVersion: ECMA_VERSION });
 }
 
-async function immediate(): Promise<void> {
-  // This function allows us to run the code in the next tick of the event loop.
-  // This is important to make sure that the code is not blocking the event loop.
+export function topscript(script: string, context: ObjectLiteral = {}, { timeout }: { timeout?: number } = {}): any {
+  const startTime = Date.now();
 
-  return new Promise((resolve) => {
-    if (typeof window !== 'undefined') {
-      setTimeout(() => resolve(), 0);
-      return;
+  function checkTimeout() {
+    if (timeout && Date.now() - startTime > timeout) {
+      throw new Error('Execution timed out');
     }
-    
-    setImmediate(() => resolve());
-  });
-}
-
-export async function topscript(script: string, context: ObjectLiteral = {}, { signal }: { signal?: AbortSignal } = {}): Promise<any> {
-  function checkSignal() {
-    if (signal && signal.aborted) throw new Error('Execution aborted');
   }
 
-  async function visitExpressionStatement({ node, scope }: { node: ExpressionStatement, scope: object }): Promise<object> {
-    return await visitNode({ node: node.expression, scope });
+  function visitExpressionStatement({ node, scope }: { node: ExpressionStatement, scope: object }): object {
+    return visitNode({ node: node.expression, scope });
   }
 
-  async function visitArrayExpression({ expression, scope }: { expression: ArrayExpression, scope: object }): Promise<any[]> {
+  function visitArrayExpression({ expression, scope }: { expression: ArrayExpression, scope: object }): any[] {
     let res: any[] = [];
 
     for (const element of expression.elements) {
@@ -89,10 +79,10 @@ export async function topscript(script: string, context: ObjectLiteral = {}, { s
 
       switch (element.type) {
         case 'SpreadElement':
-          res = [...res, ...(await visitNode({ node: element.argument, scope }))];
+          res = [...res, ...visitNode({ node: element.argument, scope })];
           break;
         default:
-          res.push(await visitNode({ node: element, scope }));
+          res.push(visitNode({ node: element, scope }));
           break;
       }
     }
@@ -100,17 +90,7 @@ export async function topscript(script: string, context: ObjectLiteral = {}, { s
     return res;
   }
 
-  async function mapAsync<T, U>(array: T[], fn: (item: T) => Promise<U>): Promise<U[]> {
-    const res: U[] = [];
-
-    for (const item of array) {
-      res.push(await fn(item));
-    }
-    
-    return res;
-  }
-
-  async function visitObjectExpression({ expression, scope }: { expression: ObjectExpression, scope: object }): Promise<object> {
+  function visitObjectExpression({ expression, scope }: { expression: ObjectExpression, scope: object }): object {
     let res: ObjectLiteral = {};
 
     for (const property of expression.properties) {
@@ -118,10 +98,10 @@ export async function topscript(script: string, context: ObjectLiteral = {}, { s
 
       switch (type) {
         case 'Property': {
-          const value = await visitNode({ node: property.value, scope });
+          const value = visitNode({ node: property.value, scope });
 
           if (property.computed) {
-            res[await visitNode({ node: property.key, scope })] = value;
+            res[visitNode({ node: property.key, scope })] = value;
             break;
           }
 
@@ -137,7 +117,7 @@ export async function topscript(script: string, context: ObjectLiteral = {}, { s
           }
         };
         case 'SpreadElement':
-          res = { ...res, ...(await visitNode({ node: property.argument, scope })) };
+          res = { ...res, ...visitNode({ node: property.argument, scope }) };
           break;
         default:
           throw new Error(`Unknown property type ${type}`);
@@ -147,80 +127,80 @@ export async function topscript(script: string, context: ObjectLiteral = {}, { s
     return res;
   }
 
-  async function visitIfStatement({ node, scope }: { node: IfStatement, scope: object }) {
-    async function visitConditionNode(conditionNode: Expression | Statement) {
+  function visitIfStatement({ node, scope }: { node: IfStatement, scope: object }) {
+    function visitConditionNode(conditionNode: Expression | Statement) {
       switch (conditionNode.type) {
         case 'BlockStatement': {
           const fn = visitBlockStatement({ node: conditionNode, scope });
-          await fn();
+          fn();
           return;
         };
         default:
-          await visitNode({ node: conditionNode, scope });
+          visitNode({ node: conditionNode, scope });
           return;
       }
     }
 
-    if (await visitNode({ node: node.test, scope })) {
-      await visitConditionNode(node.consequent);
+    if (visitNode({ node: node.test, scope })) {
+      visitConditionNode(node.consequent);
       return;
     }
 
     if (node.alternate) {
-      await visitConditionNode(node.alternate);
+      visitConditionNode(node.alternate);
       return;
     }
   }
 
-  async function visitBinaryExpression({ expression, scope }: { expression: BinaryExpression, scope: object }): Promise<any> {
-    const left = async () => await visitNode({ node: expression.left, scope });
-    const right = async () => await visitNode({ node: expression.right, scope });
+  function visitBinaryExpression({ expression, scope }: { expression: BinaryExpression, scope: object }): any {
+    const left = () => visitNode({ node: expression.left, scope });
+    const right = () => visitNode({ node: expression.right, scope });
 
     switch (expression.operator) {
-      case '*': return (await left()) * (await right());
-      case '/': return (await left()) / (await right());
-      case '-': return (await left()) - (await right());
-      case '+': return (await left()) + (await right());
-      case '%': return (await left()) % (await right());
-      case '**': return (await left()) ** (await right());
-      case '^': return (await left()) ^ (await right());
-      case '&': return (await left()) & (await right());
-      case '|': return (await left()) | (await right());
-      case '<': return (await left()) < (await right());
-      case '<=': return (await left()) <= (await right());
-      case '>': return (await left()) > (await right());
-      case '>=': return (await left()) >= (await right());
-      case '<<': return (await left()) << (await right());
-      case '>>': return (await left()) >> (await right());
-      case '==': return (await left()) == (await right());
-      case '===': return (await left()) === await right();
-      case '!=': return (await left()) != await right();
-      case '!==': return (await left()) !== (await right());
+      case '*': return left() * right();
+      case '/': return left() / right();
+      case '-': return left() - right();
+      case '+': return left() + right();
+      case '%': return left() % right();
+      case '**': return left() ** right();
+      case '^': return left() ^ right();
+      case '&': return left() & right();
+      case '|': return left() | right();
+      case '<': return left() < right();
+      case '<=': return left() <= right();
+      case '>': return left() > right();
+      case '>=': return left() >= right();
+      case '<<': return left() << right();
+      case '>>': return left() >> right();
+      case '==': return left() == right();
+      case '===': return left() === right();
+      case '!=': return left() != right();
+      case '!==': return left() !== right();
       default: throw new Error(`Unknown binary operator ${expression.operator}`);
     }
   }
 
-  async function visitLogicalExpression({ expression, scope }: { expression: LogicalExpression, scope: object }): Promise<any> {
-    const left = async () => await visitNode({ node: expression.left, scope });
-    const right = async () => await visitNode({ node: expression.right, scope });
+  function visitLogicalExpression({ expression, scope }: { expression: LogicalExpression, scope: object }): any {
+    const left = () => visitNode({ node: expression.left, scope });
+    const right = () => visitNode({ node: expression.right, scope });
 
     switch (expression.operator) {
-      case '&&': return (await left()) && (await right());
-      case '||': return (await left()) || (await right());
+      case '&&': return left() && right();
+      case '||': return left() || right();
       default: throw new Error(`Unknown logical operator ${expression.operator}`);
     }
   }
 
-  async function visitDelete({ node, scope }: { node: Expression, scope: object }) {
+  function visitDelete({ node, scope }: { node: Expression, scope: object }) {
     switch (node.type) {
       case 'MemberExpression': {
-        const object = await visitNode({ node: node.object, scope });
+        const object = visitNode({ node: node.object, scope });
 
         if (node.property.type === 'Identifier') {
           delete object[node.property.name];
           return;
         } else {
-          delete object[await visitNode({ node: node.property, scope })];
+          delete object[visitNode({ node: node.property, scope })];
           return;
         }
       };
@@ -228,33 +208,33 @@ export async function topscript(script: string, context: ObjectLiteral = {}, { s
     }
   }
 
-  async function visitUnaryExpression({ expression, scope }: { expression: UnaryExpression, scope: object }): Promise<any> {
+  function visitUnaryExpression({ expression, scope }: { expression: UnaryExpression, scope: object }): any {
     switch (expression.operator) {
-      case '-': return -(await visitNode({ node: expression.argument, scope }));
-      case '+': return +(await visitNode({ node: expression.argument, scope }));
-      case '!': return !(await visitNode({ node: expression.argument, scope }));
-      case 'delete': return await visitDelete({ node: expression.argument, scope });
+      case '-': return -(visitNode({ node: expression.argument, scope }));
+      case '+': return +(visitNode({ node: expression.argument, scope }));
+      case '!': return !(visitNode({ node: expression.argument, scope }));
+      case 'delete': return visitDelete({ node: expression.argument, scope });
       default:
         throw new Error(`Unknown unary operator ${expression.operator}`);
     }
   }
 
-  async function visitAssignmentExpression({ expression, scope }: { expression: AssignmentExpression, scope: object }): Promise<any> {
-    async function assignWithOperator(fn: (a: any, b: any) => any) {
+  function visitAssignmentExpression({ expression, scope }: { expression: AssignmentExpression, scope: object }): any {
+    function assignWithOperator(fn: (a: any, b: any) => any) {
       if (expression.left.type === 'Identifier') {
         if (!(expression.left.name in scope)) throw new Error(`${expression.left.name} is unknown`);
-        redefineProperty(scope, expression.left.name, { value: fn((scope as ObjectLiteral)[expression.left.name], await visitNode({ node: expression.right, scope })) });
+        redefineProperty(scope, expression.left.name, { value: fn((scope as ObjectLiteral)[expression.left.name], visitNode({ node: expression.right, scope })) });
         return;
       } else if (expression.left.type === 'MemberExpression') {
-        const object = await visitNode({ node: expression.left.object, scope });
+        const object = visitNode({ node: expression.left.object, scope });
 
         if (expression.left.property.type === 'Identifier') {
-          object[expression.left.property.name] = fn(object[expression.left.property.name], await visitNode({ node: expression.right, scope }));
+          object[expression.left.property.name] = fn(object[expression.left.property.name], visitNode({ node: expression.right, scope }));
           return;
         } else {
-          object[await visitNode({ node: expression.left.property, scope })] = fn(
-            object[await visitNode({ node: expression.left.property, scope })],
-            await visitNode({ node: expression.right, scope })
+          object[visitNode({ node: expression.left.property, scope })] = fn(
+            object[visitNode({ node: expression.left.property, scope })],
+            visitNode({ node: expression.right, scope })
           );
 
           return;
@@ -266,55 +246,55 @@ export async function topscript(script: string, context: ObjectLiteral = {}, { s
 
     switch (expression.operator) {
       case '=':
-        await assignWithOperator((_a, b) => b);
+        assignWithOperator((_a, b) => b);
         return;
       case '+=':
-        await assignWithOperator((a, b) => a + b);
+        assignWithOperator((a, b) => a + b);
         return;
       case '-=':
-        await assignWithOperator((a, b) => a - b);
+        assignWithOperator((a, b) => a - b);
         return;
       case '*=':
-        await assignWithOperator((a, b) => a * b);
+        assignWithOperator((a, b) => a * b);
         return;
       case '/=':
-        await assignWithOperator((a, b) => a / b);
+        assignWithOperator((a, b) => a / b);
         return;
       case '%=':
-        await assignWithOperator((a, b) => a % b);
+        assignWithOperator((a, b) => a % b);
         return;
       case '**=':
-        await assignWithOperator((a, b) => a ** b);
+        assignWithOperator((a, b) => a ** b);
         return;
       case '^=':
-        await assignWithOperator((a, b) => a ^ b);
+        assignWithOperator((a, b) => a ^ b);
         return;
       case '&=':
-        await assignWithOperator((a, b) => a & b);
+        assignWithOperator((a, b) => a & b);
         return;
       case '|=':
-        await assignWithOperator((a, b) => a | b);
+        assignWithOperator((a, b) => a | b);
         return;
       case '<<=':
-        await assignWithOperator((a, b) => a << b);
+        assignWithOperator((a, b) => a << b);
         return;
       case '>>=':
-        await assignWithOperator((a, b) => a >> b);
+        assignWithOperator((a, b) => a >> b);
         return;
       default:
         throw new Error(`Unknown assignment operator ${expression.operator}`);
     }
   }
 
-  async function visitCallExpression({ expression, scope }: { expression: CallExpression, scope: object }): Promise<any> {
-    const args = await mapAsync(expression.arguments, async (argument) => await visitNode({ node: argument, scope }));
+  function visitCallExpression({ expression, scope }: { expression: CallExpression, scope: object }) {
+    const args = expression.arguments.map((argument) => visitNode({ node: argument, scope }));
 
     switch (expression.callee.type) {
       case 'MemberExpression': {
         if(expression.callee.optional) throw new Error('Optional chaining is not supported');
 
-        const object = await visitNode({ node: expression.callee.object, scope });
-        const fn = await visitNode({ node: expression.callee.property, scope: object });
+        const object = visitNode({ node: expression.callee.object, scope });
+        const fn = visitNode({ node: expression.callee.property, scope: object });
 
         if (typeof fn !== 'function') throw new Error(`${fn} is not a function`);
 
@@ -327,11 +307,11 @@ export async function topscript(script: string, context: ObjectLiteral = {}, { s
         return fn(...args);
       };
       case 'FunctionExpression': {
-        const fn = await visitFunctionBody({ node: expression.callee.body, scope, params: expression.callee.params });
+        const fn = visitFunctionBody({ node: expression.callee.body, scope, params: expression.callee.params });
         return fn(...args);
       };
       case 'ArrowFunctionExpression': {
-        const fn = await visitArrowFunctionBody({ node: expression.callee.body, scope, params: expression.callee.params });
+        const fn = visitArrowFunctionBody({ node: expression.callee.body, scope, params: expression.callee.params });
         return fn(...args);
       };
       default:
@@ -339,7 +319,7 @@ export async function topscript(script: string, context: ObjectLiteral = {}, { s
     }
   }
 
-  async function visitVariableDeclaration({ node, scope }: { node: VariableDeclaration, scope: object }) {
+  function visitVariableDeclaration({ node, scope }: { node: VariableDeclaration, scope: object }) {
     for (const declaration of node.declarations) {
       switch (declaration.id.type) {
         case 'Identifier': {
@@ -350,7 +330,7 @@ export async function topscript(script: string, context: ObjectLiteral = {}, { s
             break;
           }
 
-          const value = await visitNode({ node: declaration.init, scope });
+          const value = visitNode({ node: declaration.init, scope });
           Object.defineProperty(scope, declaration.id.name, { value, writable: node.kind !== 'const' });
           break;
         };
@@ -365,9 +345,8 @@ export async function topscript(script: string, context: ObjectLiteral = {}, { s
   }
 
   function visitBlockStatement({ node, scope, params }: { node: BlockStatement, scope: object, params?: any[] }) {
-    return async (...runtimeParams: any[]) => {
-      await immediate();
-      checkSignal();
+    return (...runtimeParams: any[]) => {
+      checkTimeout();
 
       const newScope = createScope(scope);
       newScope['arguments'] = runtimeParams;
@@ -379,7 +358,7 @@ export async function topscript(script: string, context: ObjectLiteral = {}, { s
       }
 
       try {
-        const res = await mapAsync(node.body, async (item) => await visitNode({ node: item, scope: newScope }));
+        const res = node.body.map((item) => visitNode({ node: item, scope: newScope }));
 
         return res[res.length - 1];
       } catch (error) {
@@ -391,9 +370,8 @@ export async function topscript(script: string, context: ObjectLiteral = {}, { s
   }
 
   function visitArrowFunctionBody({ node, scope, params }: { node: AnyNode, scope: object, params: any[] }) {
-    return async (...runtimeParams: any[]): Promise<any> => {
-      await immediate();
-      checkSignal();
+    return (...runtimeParams: any[]): any => {
+      checkTimeout();
 
       const newScope = createScope(scope);
 
@@ -401,7 +379,7 @@ export async function topscript(script: string, context: ObjectLiteral = {}, { s
         visitParamNode({ node: param, scope: newScope, values: runtimeParams, index });
       });
 
-      return await visitNode({ node, scope: newScope });
+      return visitNode({ node, scope: newScope });
     };
   }
 
@@ -431,17 +409,17 @@ export async function topscript(script: string, context: ObjectLiteral = {}, { s
     return visitFunctionBody({ node: node.body, scope, params: node.params });
   }
 
-  async function visitReturnStatement({ node, scope }: { node: ReturnStatement, scope: object }) {
+  function visitReturnStatement({ node, scope }: { node: ReturnStatement, scope: object }) {
     if (node.argument === undefined || node.argument === null) return node.argument;
 
-    return await visitNode({ node: node.argument, scope });
+    return visitNode({ node: node.argument, scope });
   }
 
-  async function visitMemberExpression({ node, scope }: { node: MemberExpression, scope: object }): Promise<any> {
-    const object = await visitNode({ node: node.object, scope });
+  function visitMemberExpression({ node, scope }: { node: MemberExpression, scope: object }): any {
+    const object = visitNode({ node: node.object, scope });
 
     if (node.computed) {
-      const property = await visitNode({ node: node.property, scope });
+      const property = visitNode({ node: node.property, scope });
       return object[property];
     }
 
@@ -467,9 +445,9 @@ export async function topscript(script: string, context: ObjectLiteral = {}, { s
     }
   }
 
-  async function visitTemplateLiteral({ node, scope }: { node: TemplateLiteral, scope: object }) {
+  function visitTemplateLiteral({ node, scope }: { node: TemplateLiteral, scope: object }) {
     const quasis = node.quasis.map((quasi) => quasi.value.cooked);
-    const expressions = await mapAsync(node.expressions, async (expression) => await visitNode({ node: expression, scope }));
+    const expressions = node.expressions.map((expression) => visitNode({ node: expression, scope }));
     
     const result = quasis[0] || '';
 
@@ -478,49 +456,47 @@ export async function topscript(script: string, context: ObjectLiteral = {}, { s
     }, result);
   }
 
-  async function visitWhileStatement({ node, scope }: { node: WhileStatement, scope: object }) {
-    while (await visitNode({ node: node.test, scope })) {
-      await immediate();
-      checkSignal();
-
+  function visitWhileStatement({ node, scope }: { node: WhileStatement, scope: object }) {
+    while (visitNode({ node: node.test, scope })) {
+      checkTimeout();
       const fn = visitBlockStatement({ node: node.body as BlockStatement, scope });
-      await fn();
+      fn();
     }
   }
 
-  async function visitNode({ node, scope }: { node: AnyNode, scope: object }): Promise<any> {
+  function visitNode({ node, scope }: { node: AnyNode, scope: object }): any {
     switch (node.type) {
-      case 'ExpressionStatement': return await visitExpressionStatement({ node, scope });
-      case 'BinaryExpression': return await visitBinaryExpression({ expression: node, scope });
-      case 'UnaryExpression': return await visitUnaryExpression({ expression: node, scope });
-      case 'LogicalExpression': return await visitLogicalExpression({ expression: node, scope });
+      case 'ExpressionStatement': return visitExpressionStatement({ node, scope });
+      case 'BinaryExpression': return visitBinaryExpression({ expression: node, scope });
+      case 'UnaryExpression': return visitUnaryExpression({ expression: node, scope });
+      case 'LogicalExpression': return visitLogicalExpression({ expression: node, scope });
       case 'Literal': return visitLiteral({ node });
       case 'Identifier':
         if (!hasProperty(scope, node.name)) throw new Error(`Unknown variable ${node.name}`);
 
         return (scope as ObjectLiteral)[node.name];
-      case 'VariableDeclaration': return await visitVariableDeclaration({ node, scope });
+      case 'VariableDeclaration': return visitVariableDeclaration({ node, scope });
       case 'FunctionExpression': return visitFunctionExpression({ node, scope });
       case 'FunctionDeclaration': return visitFunctionDeclaration({ node, scope });
       case 'ArrowFunctionExpression': return visitArrowFunctionExpression({ node, scope });
       case 'EmptyStatement': return;
-      case 'ReturnStatement': throw new ReturnException(await visitReturnStatement({ node, scope }));
-      case 'CallExpression': return await visitCallExpression({ expression: node, scope });
-      case 'AssignmentExpression': return await visitAssignmentExpression({ expression: node, scope });
-      case 'ArrayExpression': return await visitArrayExpression({ expression: node, scope });
-      case 'ObjectExpression': return await visitObjectExpression({ expression: node, scope });
-      case 'IfStatement': return await visitIfStatement({ node, scope });
+      case 'ReturnStatement': throw new ReturnException(visitReturnStatement({ node, scope }));
+      case 'CallExpression': return visitCallExpression({ expression: node, scope });
+      case 'AssignmentExpression': return visitAssignmentExpression({ expression: node, scope });
+      case 'ArrayExpression': return visitArrayExpression({ expression: node, scope });
+      case 'ObjectExpression': return visitObjectExpression({ expression: node, scope });
+      case 'IfStatement': return visitIfStatement({ node, scope });
       case 'BlockStatement': return visitBlockStatement({ node, scope })();
-      case 'MemberExpression': return await visitMemberExpression({ node, scope });
-      case 'TemplateLiteral': return await visitTemplateLiteral({ node, scope });
-      case 'WhileStatement': return await visitWhileStatement({ node, scope });
+      case 'MemberExpression': return visitMemberExpression({ node, scope });
+      case 'TemplateLiteral': return visitTemplateLiteral({ node, scope });
+      case 'WhileStatement': return visitWhileStatement({ node, scope });
       default: throw new Error(`Unknown node type ${node.type}`);
     };
   }
 
   const tree = parse(script, { ecmaVersion: ECMA_VERSION }).body;
   const scope = createScope(context);
-  const res = await mapAsync(tree, async (node) => await visitNode({ node, scope }));
+  const res = tree.map((node) => visitNode({ node, scope }));
 
   return res[res.length - 1];
 }
