@@ -55,8 +55,27 @@ export function validate(script: string) {
   return parse(script, { ecmaVersion: ECMA_VERSION });
 }
 
-export function topscript(script: string, context: ObjectLiteral = {}, { timeout }: { timeout?: number } = {}): any {
+export function topscript(
+  script: string,
+  context: ObjectLiteral = {},
+  { timeout, disableWhileStatements, maxStackSize }: { timeout?: number, disableWhileStatements?: boolean, maxStackSize?: number } = {},
+): any {
   const startTime = Date.now();
+  let stackSize = 0;
+
+  function withStackCheck<T>(fn: () => T): T {
+    stackSize += 1;
+
+    if (maxStackSize !== undefined && stackSize > maxStackSize) {
+      throw new Error(`Maximum stack size exceeded: ${maxStackSize}`);
+    }
+
+    try {
+      return fn();
+    } finally {
+      stackSize -= 1;
+    }
+  }
 
   function checkTimeout() {
     if (timeout && Date.now() - startTime > timeout) {
@@ -346,40 +365,44 @@ export function topscript(script: string, context: ObjectLiteral = {}, { timeout
 
   function visitBlockStatement({ node, scope, params }: { node: BlockStatement, scope: object, params?: any[] }) {
     return (...runtimeParams: any[]) => {
-      checkTimeout();
+      return withStackCheck(() => {
+        checkTimeout();
 
-      const newScope = createScope(scope);
-      newScope['arguments'] = runtimeParams;
+        const newScope = createScope(scope);
+        newScope['arguments'] = runtimeParams;
 
-      if (params) {
-        params.forEach((param, index) => {
-          visitParamNode({ node: param, scope: newScope, values: runtimeParams, index });
-        });
-      }
+        if (params) {
+          params.forEach((param, index) => {
+            visitParamNode({ node: param, scope: newScope, values: runtimeParams, index });
+          });
+        }
 
-      try {
-        const res = node.body.map((item) => visitNode({ node: item, scope: newScope }));
+        try {
+          const res = node.body.map((item) => visitNode({ node: item, scope: newScope }));
 
-        return res[res.length - 1];
-      } catch (error) {
-        if (error instanceof ReturnException) return error.value;
+          return res[res.length - 1];
+        } catch (error) {
+          if (error instanceof ReturnException) return error.value;
 
-        throw (error);
-      }
+          throw (error);
+        }
+      });
     };
   }
 
   function visitArrowFunctionBody({ node, scope, params }: { node: AnyNode, scope: object, params: any[] }) {
     return (...runtimeParams: any[]): any => {
-      checkTimeout();
+      return withStackCheck(() => {
+        checkTimeout();
 
-      const newScope = createScope(scope);
+        const newScope = createScope(scope);
 
-      params.forEach((param, index) => {
-        visitParamNode({ node: param, scope: newScope, values: runtimeParams, index });
+        params.forEach((param, index) => {
+          visitParamNode({ node: param, scope: newScope, values: runtimeParams, index });
+        });
+
+        return visitNode({ node, scope: newScope });
       });
-
-      return visitNode({ node, scope: newScope });
     };
   }
 
@@ -457,6 +480,8 @@ export function topscript(script: string, context: ObjectLiteral = {}, { timeout
   }
 
   function visitWhileStatement({ node, scope }: { node: WhileStatement, scope: object }) {
+    if (disableWhileStatements) throw new Error('While statements are not available');
+
     while (visitNode({ node: node.test, scope })) {
       checkTimeout();
       const fn = visitBlockStatement({ node: node.body as BlockStatement, scope });

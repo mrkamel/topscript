@@ -57,9 +57,20 @@ Topscript supports a wide range of JavaScript features:
 
 Topscript includes several safety mechanisms:
 
-- **Timeout**: You can specify a execution timeout
+- **Timeout**: You can specify a execution timeout (ms)
   ```js
   topscript('while(true) {}', {}, { timeout: 1_000 });
+  ```
+
+- **Disable while loops**: You can also disable while statements alltogether
+  ```js
+  topscript('while(true) {}', {}, { disableWhileStatements: true }) // throws
+  ```
+
+- **Max stack size**: You can specify a max stack size
+  ```js
+  topscript('const fn = () => fn(); fn();', {}, { maxStackSize: 10 }) // throws
+  topscript('const fn1 = () => fn2(); const fn2 = () => 0; fn1()', {}, { maxStackSize: 1 }); // throws
   ```
 
 ## Unsupported Features

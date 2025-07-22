@@ -16,6 +16,34 @@ describe('topscript', () => {
   });
 
   describe('topscript', () => {
+    it('throws when the stack size exceeds the limit', () => {
+      expect(() => topscript('function f() { f(); } f();', {}, { maxStackSize: 10 })).toThrow('Maximum stack size exceeded');
+
+      expect(() => topscript(`
+        const fn1 = () => fn2();
+        const fn2 = () => fn3();
+        const fn3 = () => fn4();
+        const fn4 = () => 'result';
+        fn1();
+      `, {}, { maxStackSize: 3 })).toThrow('Maximum stack size exceeded');
+
+      expect(() => topscript(`
+        function fn1() { fn2(); }
+        function fn2() { fn3(); }
+        function fn3() { fn4(); }
+        function fn4() { return 'result'; }
+        fn1();
+      `, {}, { maxStackSize: 3 })).toThrow('Maximum stack size exceeded');
+
+      expect(topscript(`
+        const fn1 = () => fn2();
+        const fn2 = () => fn3();
+        const fn3 = () => fn4();
+        const fn4 = () => 'result';
+        fn1();
+      `, {}, { maxStackSize: 4 })).toEqual('result');
+    });
+
     it('evaluates literals', async () => {
       expect(topscript('42')).toBe(42);
       expect(topscript('"hello"')).toBe('hello');
@@ -292,7 +320,7 @@ describe('topscript', () => {
       expect(() => topscript('const f = async () => {}')).toThrow('Async functions are not supported');
     });
 
-    it('aborts execution when abort signal is triggered', async () => {
+    it('aborts execution after timeout', async () => {
       expect(() => topscript('while(true) {}', {}, { timeout: 100 })).toThrow('Execution timed out');
     });
 
@@ -330,6 +358,11 @@ describe('topscript', () => {
         
         arr
       `)).toEqual([0, 1, 2]);
+    });
+
+    it('throws on unsupported while loops', async () => {
+      expect(() => topscript('while (true) { break; }', {}, { disableWhileStatements: true }))
+        .toThrow('While statements are not available');
     });
     
     it('evaluates compound assignment operators', async () => {
