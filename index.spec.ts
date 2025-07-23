@@ -406,6 +406,16 @@ describe('topscript', () => {
       expect(topscript('const obj = {}; delete obj.a?.b')).toEqual(true);
       expect(topscript('const obj = null; delete obj?.a')).toEqual(true);
     });
+
+    it('supports top level return', () => {
+      expect(topscript('return 42', {}, { allowReturnOutsideFunction: true })).toBe(42);
+      expect(topscript('if(true) return 42', {}, { allowReturnOutsideFunction: true })).toBe(42);
+      expect(topscript('return "hello"', {}, { allowReturnOutsideFunction: true })).toBe('hello');
+      expect(topscript('return true', {}, { allowReturnOutsideFunction: true })).toBe(true);
+      expect(topscript('return null', {}, { allowReturnOutsideFunction: true })).toBeNull();
+      expect(topscript('return undefined', {}, { allowReturnOutsideFunction: true })).toBeUndefined();
+      expect(() => topscript('return 42')).toThrow('\'return\' outside of function (1:0)');
+    })
     
     it('evaluates compound assignment operators', () => {
       expect(topscript('let x = 5; x += 3; x')).toBe(8);

@@ -73,6 +73,14 @@ Topscript includes several safety mechanisms:
   topscript('const fn1 = () => fn2(); const fn2 = () => 0; fn1()', {}, { maxStackSize: 1 }); // throws
   ```
 
+## Other options
+
+You can pass `allowReturnOutsideFunction` to enable:
+
+```js
+topscript('if (true) return 42', {}, { allowReturnOutsideFunction: true }) // => 42
+```
+
 ## Unsupported Features
 
 Some JavaScript features are not supported:
