@@ -67,6 +67,18 @@ describe('topscript', () => {
       expect(topscript('null')).toBe(null);
     });
 
+    it('supports basic spread operators', () => {
+      expect(topscript('const arr = [1, 2, 3]; const newArr = [...arr, 4]; newArr')).toEqual([1, 2, 3, 4]);
+      expect(topscript('const obj = { a: 1, b: 2 }; const newObj = { ...obj, c: 3 }; newObj')).toEqual({ a: 1, b: 2, c: 3 });
+      expect(topscript('const arr1 = [1, 2]; const arr2 = [3, 4]; const newArr = [...arr1, ...arr2]; newArr')).toEqual([1, 2, 3, 4]);
+      expect(topscript('const obj1 = { a: 1 }; const obj2 = { b: 2 }; const newObj = { ...obj1, ...obj2 }; newObj')).toEqual({ a: 1, b: 2 });
+      expect(topscript('function f(...args) { return args; } f(1, 2, 3)')).toEqual([1, 2, 3]);
+      expect(topscript('const fn = (...args) => args; fn(1, 2, 3)')).toEqual([1, 2, 3]);
+
+      expect(() => topscript('const [a, b, ...rest] = [1, 2, 3, 4]; rest')).toThrow('Unknown variable declaration ArrayPattern');
+      expect(() => topscript('const { a, b, ...rest } = { a: 1, b: 2, c: 3 }; rest')).toThrow('Unknown variable declaration ObjectPattern');
+    });
+
     it('evaluates binary expressions', () => {
       expect(topscript('2 + 3')).toBe(5);
       expect(topscript('5 - 2')).toBe(3);
