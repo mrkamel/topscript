@@ -372,11 +372,39 @@ describe('topscript', () => {
         .toThrow('While statements are not available');
     });
 
+    it('supports null and undefined', () => {
+      expect(topscript('null')).toBeNull();
+      expect(topscript('undefined')).toBeUndefined();
+      expect(topscript('const x = null; x')).toBeNull();
+      expect(topscript('const y = undefined; y')).toBeUndefined();
+      expect(topscript('(() => { return null; })()')).toBeNull();
+      expect(topscript('(() => { return undefined; })()')).toBeUndefined();
+    });
+
     it('supports safe navigation', () => {
+      expect(topscript('const obj = { a: { b: 1 } }; obj.a.c')).toBe(undefined);
+      expect(topscript('const obj = null; obj?.a.b.c')).toBeUndefined();
+      expect(topscript('const obj = null; obj?.a?.b')).toBeUndefined();
       expect(topscript('const obj = { a: { b: 1 } }; obj?.a?.b')).toBe(1);
       expect(topscript('const obj = { a: null }; obj?.a?.b?.c')).toBeUndefined();
-      expect(topscript('const obj = null; obj?.a?.b')).toBeUndefined();
-      expect(() => topscript('const obj = { a: { b: () => "result" } }; obj?.a?.b()')).toThrow('Optional chaining is not supported for functions');
+      expect(topscript('const obj = { a: null }; obj?.a?.["" + "b"]?.c')).toBeUndefined();
+
+      expect(topscript('const arr = [1, 2, 3]; arr?.[0]')).toBe(1);
+      expect(topscript('const arr = [1, 2, 3]; arr?.[3]?.x')).toBeUndefined();
+      expect(topscript('const arr = null; arr?.[0]')).toBeUndefined();
+      expect(topscript('const arr = [1, 2, 3]; arr?.length')).toBe(3);
+      expect(topscript('const arr = null; arr?.length')).toBeUndefined();
+
+      expect(topscript('const obj = { a: { b: () => "result" } }; obj?.a?.b()')).toEqual('result');
+      expect(() => topscript('const obj = { a: { b: "result" } }; obj?.a?.b()')).toThrow('b is not a function');
+      expect(topscript('const obj = { a: undefined }; obj?.a?.c()')).toBeUndefined();
+      expect(topscript('const obj = { a: {} }; obj?.a?.b?.()')).toBeUndefined();
+      expect(() => topscript('const obj = { a: undefined }; obj?.a.c()')).toThrow('Cannot read properties of undefined (reading \'c\')');
+      expect(topscript('const obj = null; obj?.a.b()')).toBeUndefined();
+
+      expect(topscript('const obj = { a: "b", c: "d" }; delete obj?.a; obj')).toEqual({ c: 'd' });
+      expect(topscript('const obj = {}; delete obj.a?.b')).toEqual(true);
+      expect(topscript('const obj = null; delete obj?.a')).toEqual(true);
     });
     
     it('evaluates compound assignment operators', () => {
