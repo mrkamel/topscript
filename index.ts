@@ -7,6 +7,7 @@ import {
   Statement,
   TemplateLiteral,
   WhileStatement,
+  ConditionalExpression,
 } from 'acorn';
 
 const ECMA_VERSION = 2019;
@@ -489,6 +490,14 @@ export function topscript(
     }
   }
 
+  function visitConditionalExpression({ node, scope }: { node: ConditionalExpression, scope: object }) {
+    const test = visitNode({ node: node.test, scope });
+
+    if (test) return visitNode({ node: node.consequent, scope });
+
+    return visitNode({ node: node.alternate, scope });
+  }
+
   function visitNode({ node, scope }: { node: AnyNode, scope: object }): any {
     switch (node.type) {
       case 'ExpressionStatement': return visitExpressionStatement({ node, scope });
@@ -515,6 +524,7 @@ export function topscript(
       case 'MemberExpression': return visitMemberExpression({ node, scope });
       case 'TemplateLiteral': return visitTemplateLiteral({ node, scope });
       case 'WhileStatement': return visitWhileStatement({ node, scope });
+      case 'ConditionalExpression': return visitConditionalExpression({ node, scope });
       default: throw new Error(`Unknown node type ${node.type}`);
     };
   }

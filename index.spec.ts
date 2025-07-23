@@ -201,6 +201,14 @@ describe('topscript', () => {
       expect(topscript('"hello".slice(1, 4)')).toBe('ell');
     });
 
+    it('evaluates the ternary operator', async () => {
+      expect(topscript('true ? 1 : 2')).toBe(1);
+      expect(topscript('false ? 1 : 2 * 2')).toBe(4);
+      expect(topscript('1 > 2 ? "greater" : "lesser"')).toBe('lesser');
+      expect(topscript('1 < 2 ? "lesser" : "greater"')).toBe('lesser');
+      expect(topscript('true ? (true ? "yes" : "no") : "no"')).toBe('yes');
+    });
+
     it('evaluates objects', async () => {
       expect(topscript('({ a: 1, b: 2 })')).toEqual({ a: 1, b: 2 });
       expect(topscript('({ "a": 1, ["b"]: 2, [3]: 4, [`${"c"}`]: 5 })')).toEqual({ a: 1, b: 2, 3: 4, c: 5 });
