@@ -9,11 +9,13 @@ import {
   WhileStatement,
   ConditionalExpression,
   ChainExpression,
+  Identifier,
 } from 'acorn';
 
 const ECMA_VERSION = 2020;
 
 type ObjectLiteral = { [key: string]: any };
+class SafeNavigationError extends Error {};
 
 function createScope(parent?: object) {
   const res: ObjectLiteral = {};
@@ -39,6 +41,8 @@ function redefineProperty(obj: object, key: PropertyKey, properties: Parameters<
 // object itself, but on a parent, i.e. a prototype.
 
 function hasProperty(obj: object, key: PropertyKey): boolean {
+  if (obj === null || obj === undefined) throw new Error(`Cannot read properties of ${obj} (reading '${String(key)}')`);
+
   if (obj.hasOwnProperty(key)) return true;
   if (Object.getPrototypeOf(obj) === null) return false;
 
@@ -214,8 +218,19 @@ export function topscript(
 
   function visitDelete({ node, scope }: { node: Expression, scope: object }) {
     switch (node.type) {
+      case 'ChainExpression': {
+        try {
+          return visitDelete({ node: node.expression, scope });
+        } catch (error) {
+          if (error instanceof SafeNavigationError) return true;
+
+          throw error;
+        }
+      };
       case 'MemberExpression': {
         const object = visitNode({ node: node.object, scope });
+
+        if (node.optional && (object === undefined || object === null)) throw new SafeNavigationError();
 
         if (node.property.type === 'Identifier') {
           delete object[node.property.name];
@@ -312,13 +327,21 @@ export function topscript(
 
     switch (expression.callee.type) {
       case 'MemberExpression': {
-        if(expression.callee.optional) throw new Error('Optional chaining is not supported for functions');
-
         const object = visitNode({ node: expression.callee.object, scope });
-        const fn = visitNode({ node: expression.callee.property, scope: object });
+        
+        const fn = expression.callee.property.type === 'Identifier'
+          ? visitIdentifier({ node: expression.callee.property, scope: object, optional: expression.callee.optional, memberAccess: true })
+          : visitNode({ node: expression.callee.property, scope: object });
 
-        if (typeof fn !== 'function') throw new Error(`${fn} is not a function`);
-        if (expression.callee.optional && (object === null || object === undefined)) return undefined;
+        if (typeof fn !== 'function') {
+          if (expression.callee.optional && (fn === undefined || fn === null)) throw new SafeNavigationError();
+
+          if (expression.callee.property.type === 'Identifier') {
+            throw new Error(`${expression.callee.property.name} is not a function`);
+          }
+
+          throw new Error(`${fn} is not a function`);
+        }
 
         return fn.apply(object, args);
       };
@@ -348,7 +371,7 @@ export function topscript(
           if (scope.hasOwnProperty(declaration.id.name)) throw new Error(`${declaration.id.name} is already declared`);
 
           if (declaration.init === null || declaration.init === undefined) {
-            Object.defineProperty(scope, declaration.id.name, { value: declaration.init });
+            Object.defineProperty(scope, declaration.id.name, { value: declaration.init, writable: node.kind !== 'const' });
             break;
           }
 
@@ -444,10 +467,10 @@ export function topscript(
   function visitMemberExpression({ node, scope }: { node: MemberExpression, scope: object }): any {
     const object = visitNode({ node: node.object, scope });
 
+    if (node.optional && (object === undefined || object === null)) throw new SafeNavigationError();
+
     if (node.computed) {
       const property = visitNode({ node: node.property, scope });
-
-      if (node.optional && (object === null || object === undefined)) return undefined;
 
       return object[property];
     }
@@ -455,8 +478,6 @@ export function topscript(
     if (node.property.type !== 'Identifier') {
       throw new Error(`Unexpected property type: ${node.property.type}`);
     }
-
-    if (node.optional && (object === null || object === undefined)) return undefined;
 
     return object[node.property.name];
   }
@@ -506,7 +527,21 @@ export function topscript(
   }
 
   function visitChainExpression({ node, scope }: { node: ChainExpression, scope: object }) {
-    return visitNode({ node: node.expression, scope });
+    try {
+      return visitNode({ node: node.expression, scope });
+    } catch (error) {
+      if (error instanceof SafeNavigationError) return undefined;
+      throw error;
+    }
+  }
+
+  function visitIdentifier({ node, scope, optional, memberAccess }: { node: Identifier, scope: object, optional?: boolean, memberAccess?: boolean }): any {
+    if (node.name === 'undefined') return undefined;
+  
+    if (optional && (scope === undefined || scope === null)) throw new SafeNavigationError();
+    if (!hasProperty(scope, node.name) && !memberAccess) throw new Error(`Unknown variable ${node.name}`);
+
+    return (scope as ObjectLiteral)[node.name];
   }
 
   function visitNode({ node, scope }: { node: AnyNode, scope: object }): any {
@@ -516,10 +551,7 @@ export function topscript(
       case 'UnaryExpression': return visitUnaryExpression({ expression: node, scope });
       case 'LogicalExpression': return visitLogicalExpression({ expression: node, scope });
       case 'Literal': return visitLiteral({ node });
-      case 'Identifier':
-        if (!hasProperty(scope, node.name)) throw new Error(`Unknown variable ${node.name}`);
-
-        return (scope as ObjectLiteral)[node.name];
+      case 'Identifier': return visitIdentifier({ node, scope });
       case 'VariableDeclaration': return visitVariableDeclaration({ node, scope });
       case 'FunctionExpression': return visitFunctionExpression({ node, scope });
       case 'FunctionDeclaration': return visitFunctionDeclaration({ node, scope });
