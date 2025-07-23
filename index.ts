@@ -64,7 +64,7 @@ export function validate(script: string) {
 export function topscript(
   script: string,
   context: ObjectLiteral = {},
-  { timeout, disableWhileStatements, maxStackSize }: { timeout?: number, disableWhileStatements?: boolean, maxStackSize?: number } = {},
+  { timeout, disableWhileStatements, maxStackSize, allowReturnOutsideFunction }: { timeout?: number, disableWhileStatements?: boolean, maxStackSize?: number, allowReturnOutsideFunction?: boolean } = {},
 ): any {
   const startTime = Date.now();
   let stackSize = 0;
@@ -573,9 +573,17 @@ export function topscript(
     };
   }
 
-  const tree = parse(script, { ecmaVersion: ECMA_VERSION }).body;
+  const tree = parse(script, { ecmaVersion: ECMA_VERSION, allowReturnOutsideFunction }).body;
   const scope = createScope(context);
-  const res = tree.map((node) => visitNode({ node, scope }));
+
+  const res = (() => {
+    try {
+      return tree.map((node) => visitNode({ node, scope }));
+    } catch (error) {
+      if (error instanceof ReturnException) return [error.value];
+      throw error;
+    }
+  })();
 
   return res[res.length - 1];
 }
