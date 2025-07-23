@@ -8,9 +8,10 @@ import {
   TemplateLiteral,
   WhileStatement,
   ConditionalExpression,
+  ChainExpression,
 } from 'acorn';
 
-const ECMA_VERSION = 2019;
+const ECMA_VERSION = 2020;
 
 type ObjectLiteral = { [key: string]: any };
 
@@ -311,12 +312,13 @@ export function topscript(
 
     switch (expression.callee.type) {
       case 'MemberExpression': {
-        if(expression.callee.optional) throw new Error('Optional chaining is not supported');
+        if(expression.callee.optional) throw new Error('Optional chaining is not supported for functions');
 
         const object = visitNode({ node: expression.callee.object, scope });
         const fn = visitNode({ node: expression.callee.property, scope: object });
 
         if (typeof fn !== 'function') throw new Error(`${fn} is not a function`);
+        if (expression.callee.optional && (object === null || object === undefined)) return undefined;
 
         return fn.apply(object, args);
       };
@@ -444,12 +446,17 @@ export function topscript(
 
     if (node.computed) {
       const property = visitNode({ node: node.property, scope });
+
+      if (node.optional && (object === null || object === undefined)) return undefined;
+
       return object[property];
     }
 
     if (node.property.type !== 'Identifier') {
       throw new Error(`Unexpected property type: ${node.property.type}`);
     }
+
+    if (node.optional && (object === null || object === undefined)) return undefined;
 
     return object[node.property.name];
   }
@@ -498,6 +505,10 @@ export function topscript(
     return visitNode({ node: node.alternate, scope });
   }
 
+  function visitChainExpression({ node, scope }: { node: ChainExpression, scope: object }) {
+    return visitNode({ node: node.expression, scope });
+  }
+
   function visitNode({ node, scope }: { node: AnyNode, scope: object }): any {
     switch (node.type) {
       case 'ExpressionStatement': return visitExpressionStatement({ node, scope });
@@ -525,6 +536,7 @@ export function topscript(
       case 'TemplateLiteral': return visitTemplateLiteral({ node, scope });
       case 'WhileStatement': return visitWhileStatement({ node, scope });
       case 'ConditionalExpression': return visitConditionalExpression({ node, scope });
+      case 'ChainExpression': return visitChainExpression({ node, scope });
       default: throw new Error(`Unknown node type ${node.type}`);
     };
   }
