@@ -159,6 +159,9 @@ describe('topscript', () => {
 
     it('evaluates array methods', async () => {
       expect(topscript('[1, 2, 3].map((x) => x + 1)')).toEqual([2, 3, 4]);
+      expect(topscript('[1, 2, 3, 4].filter((x) => x % 2 === 0)')).toEqual([2, 4]);
+      expect(topscript('[1, 2, 3, 4].some((x) => x === 2)')).toEqual(true);
+      expect(topscript('[1, 2, 3, 4].every((x) => x === 2)')).toEqual(false);
     });
 
     it('evaluates string concatenation', async () => {
