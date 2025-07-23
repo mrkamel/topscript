@@ -420,7 +420,7 @@ describe('topscript', () => {
       expect(topscript('return undefined', {}, { allowReturnOutsideFunction: true })).toBeUndefined();
       expect(topscript('undefined', {}, { allowReturnOutsideFunction: true })).toBeUndefined();
       expect(() => topscript('return 42')).toThrow('\'return\' outside of function (1:0)');
-    })
+    });
     
     it('evaluates compound assignment operators', () => {
       expect(topscript('let x = 5; x += 3; x')).toBe(8);
