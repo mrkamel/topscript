@@ -409,11 +409,16 @@ describe('topscript', () => {
 
     it('supports top level return', () => {
       expect(topscript('return 42', {}, { allowReturnOutsideFunction: true })).toBe(42);
+      expect(topscript('42', {}, { allowReturnOutsideFunction: true })).toBe(42);
       expect(topscript('if(true) return 42', {}, { allowReturnOutsideFunction: true })).toBe(42);
       expect(topscript('return "hello"', {}, { allowReturnOutsideFunction: true })).toBe('hello');
+      expect(topscript('"hello"', {}, { allowReturnOutsideFunction: true })).toBe('hello');
       expect(topscript('return true', {}, { allowReturnOutsideFunction: true })).toBe(true);
+      expect(topscript('true', {}, { allowReturnOutsideFunction: true })).toBe(true);
       expect(topscript('return null', {}, { allowReturnOutsideFunction: true })).toBeNull();
+      expect(topscript('null', {}, { allowReturnOutsideFunction: true })).toBeNull();
       expect(topscript('return undefined', {}, { allowReturnOutsideFunction: true })).toBeUndefined();
+      expect(topscript('undefined', {}, { allowReturnOutsideFunction: true })).toBeUndefined();
       expect(() => topscript('return 42')).toThrow('\'return\' outside of function (1:0)');
     })
     
