@@ -35,8 +35,9 @@ Topscript also allows to validate a supplied script for parsing errors:
 ```js
 import { validate } from 'topscript';
 
-validate('1 + 2') // => undefined
+validate('1 + 2')
 validate('1 +') // throws an error
+validate('return 42', { allowReturnOutsideFunction: true })
 ```
 
 ## Supported Features

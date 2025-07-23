@@ -57,8 +57,8 @@ class ReturnException {
   }
 }
 
-export function validate(script: string) {
-  return parse(script, { ecmaVersion: ECMA_VERSION });
+export function validate(script: string, { allowReturnOutsideFunction }: { allowReturnOutsideFunction?: boolean } = {}) {
+  return parse(script, { ecmaVersion: ECMA_VERSION, allowReturnOutsideFunction });
 }
 
 export function topscript(

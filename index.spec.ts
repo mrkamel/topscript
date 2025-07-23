@@ -13,6 +13,21 @@ describe('topscript', () => {
       expect(() => validate('const x = 1; x + 2; const y = 3;')).not.toThrow();
       expect(() => validate('const x = 1; x + 2; const y = { a: 1 };')).not.toThrow();
     });
+
+    it('allows return outside function when specified', () => {
+      expect(() => validate('return 42', { allowReturnOutsideFunction: true })).not.toThrow();
+      expect(() => validate('return 42')).toThrow();
+      expect(() => validate('if (true) return 42', { allowReturnOutsideFunction: true })).not.toThrow();
+      expect(() => validate('if (true) return 42')).toThrow();
+      expect(() => validate('return "hello"', { allowReturnOutsideFunction: true })).not.toThrow();
+      expect(() => validate('return "hello"')).toThrow();
+      expect(() => validate('return true', { allowReturnOutsideFunction: true })).not.toThrow();
+      expect(() => validate('return true')).toThrow();
+      expect(() => validate('return null', { allowReturnOutsideFunction: true })).not.toThrow();
+      expect(() => validate('return null')).toThrow();
+      expect(() => validate('return undefined', { allowReturnOutsideFunction: true })).not.toThrow();
+      expect(() => validate('return undefined')).toThrow();
+    });
   });
 
   describe('topscript', () => {
