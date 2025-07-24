@@ -432,6 +432,9 @@ describe('topscript', () => {
       expect(topscript('const obj = { a: "b", c: "d" }; delete obj?.a; obj')).toEqual({ c: 'd' });
       expect(topscript('const obj = {}; delete obj.a?.b')).toEqual(true);
       expect(topscript('const obj = null; delete obj?.a')).toEqual(true);
+
+      expect(topscript('[null].map(x => x?.includes("y"))')).toEqual([undefined]);
+      expect(topscript('[{ employmentStatus: "active" }, { employmentStatus: null }].map(item => item.employmentStatus?.includes("active"))')).toEqual([true, undefined]);
     });
 
     it('supports top level return', () => {

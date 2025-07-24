@@ -15,7 +15,6 @@ import {
 const ECMA_VERSION = 2020;
 
 type ObjectLiteral = { [key: string]: any };
-class SafeNavigationError extends Error {};
 
 function createScope(parent?: object) {
   const res: ObjectLiteral = {};
@@ -56,6 +55,8 @@ class ReturnException {
     this.value = value;
   }
 }
+
+class SafeNavigationException {};
 
 export function validate(script: string, { allowReturnOutsideFunction }: { allowReturnOutsideFunction?: boolean } = {}) {
   return parse(script, { ecmaVersion: ECMA_VERSION, allowReturnOutsideFunction });
@@ -222,7 +223,7 @@ export function topscript(
         try {
           return visitDelete({ node: node.expression, scope });
         } catch (error) {
-          if (error instanceof SafeNavigationError) return true;
+          if (error instanceof SafeNavigationException) return true;
 
           throw error;
         }
@@ -230,7 +231,7 @@ export function topscript(
       case 'MemberExpression': {
         const object = visitNode({ node: node.object, scope });
 
-        if (node.optional && (object === undefined || object === null)) throw new SafeNavigationError();
+        if (node.optional && (object === undefined || object === null)) throw new SafeNavigationException();
 
         if (node.property.type === 'Identifier') {
           delete object[node.property.name];
@@ -328,13 +329,13 @@ export function topscript(
     switch (expression.callee.type) {
       case 'MemberExpression': {
         const object = visitNode({ node: expression.callee.object, scope });
-        
+
         const fn = expression.callee.property.type === 'Identifier'
           ? visitIdentifier({ node: expression.callee.property, scope: object, optional: expression.callee.optional, memberAccess: true })
           : visitNode({ node: expression.callee.property, scope: object });
 
         if (typeof fn !== 'function') {
-          if (expression.callee.optional && (fn === undefined || fn === null)) throw new SafeNavigationError();
+          if (expression.callee.optional && (fn === undefined || fn === null)) throw new SafeNavigationException();
 
           if (expression.callee.property.type === 'Identifier') {
             throw new Error(`${expression.callee.property.name} is not a function`);
@@ -467,7 +468,7 @@ export function topscript(
   function visitMemberExpression({ node, scope }: { node: MemberExpression, scope: object }): any {
     const object = visitNode({ node: node.object, scope });
 
-    if (node.optional && (object === undefined || object === null)) throw new SafeNavigationError();
+    if (node.optional && (object === undefined || object === null)) throw new SafeNavigationException();
 
     if (node.computed) {
       const property = visitNode({ node: node.property, scope });
@@ -500,7 +501,7 @@ export function topscript(
   function visitTemplateLiteral({ node, scope }: { node: TemplateLiteral, scope: object }) {
     const quasis = node.quasis.map((quasi) => quasi.value.cooked);
     const expressions = node.expressions.map((expression) => visitNode({ node: expression, scope }));
-    
+
     const result = quasis[0] || '';
 
     return expressions.reduce((acc, expr, i) => {
@@ -530,15 +531,16 @@ export function topscript(
     try {
       return visitNode({ node: node.expression, scope });
     } catch (error) {
-      if (error instanceof SafeNavigationError) return undefined;
+      if (error instanceof SafeNavigationException) return undefined;
+
       throw error;
     }
   }
 
   function visitIdentifier({ node, scope, optional, memberAccess }: { node: Identifier, scope: object, optional?: boolean, memberAccess?: boolean }): any {
     if (node.name === 'undefined') return undefined;
-  
-    if (optional && (scope === undefined || scope === null)) throw new SafeNavigationError();
+
+    if (optional && (scope === undefined || scope === null)) throw new SafeNavigationException();
     if (!hasProperty(scope, node.name) && !memberAccess) throw new Error(`Unknown variable ${node.name}`);
 
     return (scope as ObjectLiteral)[node.name];
