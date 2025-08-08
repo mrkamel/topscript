@@ -139,6 +139,15 @@ describe('topscript', () => {
         obj.a['b' + 'c'] = 2;
         obj
       `)).toEqual({ a: { bc: 2 } });
+
+      expect(topscript(`
+        const obj = {};
+        const key1 = 'key';
+        const key2 = 0;
+        obj[key1] = 'value';
+        obj[key2] = 'zero';
+        obj
+      `)).toEqual({ key: 'value', '0': 'zero' });
     });
 
     it('evaluates iifs', () => {
@@ -164,6 +173,15 @@ describe('topscript', () => {
         const arr = [];
         arr[0] = 1;
         arr[1] = 2;
+        arr[2] = 3;
+        arr
+      `)).toEqual([1, 2, 3]);
+
+      expect(topscript(`
+        const arr = [];
+        const i = 0;
+        arr[i] = 1;
+        arr['1'] = 2;
         arr[2] = 3;
         arr
       `)).toEqual([1, 2, 3]);

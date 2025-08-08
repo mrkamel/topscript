@@ -266,7 +266,14 @@ export function topscript(
         const object = visitNode({ node: expression.left.object, scope });
 
         if (expression.left.property.type === 'Identifier') {
-          object[expression.left.property.name] = fn(object[expression.left.property.name], visitNode({ node: expression.right, scope }));
+          if (expression.left.computed) {
+            object[visitNode({ node: expression.left.property, scope })] = fn(
+              object[visitNode({ node: expression.left.property, scope })],
+              visitNode({ node: expression.right, scope }),
+            );
+          } else {
+            object[expression.left.property.name] = fn(object[expression.left.property.name], visitNode({ node: expression.right, scope }));
+          }
           return;
         } else {
           object[visitNode({ node: expression.left.property, scope })] = fn(
