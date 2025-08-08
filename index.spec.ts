@@ -156,6 +156,30 @@ describe('topscript', () => {
       expect(topscript('(function(x) { return x; })(42)')).toBe(42);
     });
 
+    it('evaluates update expressions', () => {
+      expect(topscript('let x = 5; x++; x')).toBe(6);
+      expect(topscript('let x = 5; x--; x')).toBe(4);
+      expect(topscript('let x = 5; ++x; x')).toBe(6);
+      expect(topscript('let x = 5; --x; x')).toBe(4);
+      expect(topscript('let x = 5; x++')).toBe(5);
+      expect(topscript('let x = 5; x--')).toBe(5);
+      expect(topscript('let x = 5; ++x')).toBe(6);
+      expect(topscript('let x = 5; --x')).toBe(4);
+      expect(topscript('let arr = [1, 2, 3]; arr[0]++; arr')).toEqual([2, 2, 3]);
+      expect(topscript('let arr = [1, 2, 3]; arr[1]--; arr')).toEqual([1, 1, 3]);
+      expect(topscript('let arr = [1, 2, 3]; ++arr[0]; arr')).toEqual([2, 2, 3]);
+      expect(topscript('let arr = [1, 2, 3]; --arr[1]; arr')).toEqual([1, 1, 3]);
+      expect(topscript('let arr = [1, 2, 3]; const i = 0; arr[i]++; arr')).toEqual([2, 2, 3]);
+      expect(topscript('let arr = [1, 2, 3]; const i = 1; arr[i]--; arr')).toEqual([1, 1, 3]);
+      expect(topscript('let obj = { a: 1 }; obj.a++; obj')).toEqual({ a: 2 });
+      expect(topscript('let obj = { a: 1 }; obj.a--; obj')).toEqual({ a: 0 });
+      expect(topscript('let obj = { a: 1 }; ++obj.a; obj')).toEqual({ a: 2 });
+      expect(topscript('let obj = { a: 1 }; --obj.a; obj')).toEqual({ a: 0 });
+      expect(topscript('let obj = { a: 1 }; const key = "a"; obj[key]++; obj')).toEqual({ a: 2 });
+      expect(topscript('let obj = { a: 1 }; const key = "a"; obj[key]--; obj')).toEqual({ a: 0 });
+      expect(() => topscript('const x = 5; x++')).toThrow('Cannot redefine property: x');
+    });
+
     it('evaluates array assignments', () => {
       expect(topscript(`
         const arr = [1, 2, 3];

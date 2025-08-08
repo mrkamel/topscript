@@ -10,6 +10,7 @@ import {
   ConditionalExpression,
   ChainExpression,
   Identifier,
+  UpdateExpression,
 } from 'acorn';
 
 const ECMA_VERSION = 2020;
@@ -553,6 +554,58 @@ export function topscript(
     return (scope as ObjectLiteral)[node.name];
   }
 
+  function visitUpdateExpression({ expression, scope }: { expression: UpdateExpression, scope: object }): any {
+    if (expression.argument.type === 'Identifier') {
+      if (!(expression.argument.name in scope)) throw new Error(`${expression.argument.name} is unknown`);
+
+      const value = (scope as ObjectLiteral)[expression.argument.name];
+
+      if (expression.operator === '++') {
+        const newValue = value + 1;
+        redefineProperty(scope, expression.argument.name, { value: newValue });
+        return expression.prefix ? newValue : value;
+      } else if (expression.operator === '--') {
+        const newValue = value - 1;
+        redefineProperty(scope, expression.argument.name, { value: newValue });
+        return expression.prefix ? newValue : value;
+      } else {
+        throw new Error(`Unknown update operator ${expression.operator}`);
+      }
+    }
+
+    if (expression.argument.type === 'MemberExpression') {
+      const object = visitNode({ node: expression.argument.object, scope });
+
+      if (expression.argument.property.type === 'Identifier') {
+        if (expression.argument.computed) {
+          const key = visitNode({ node: expression.argument.property, scope });
+          const value = object[key];
+          const newValue = expression.operator === '++' ? value + 1 : value - 1;
+
+          object[key] = newValue;
+
+          return expression.prefix ? newValue : value;
+        } else {
+          const key = expression.argument.property.name;
+          const value = object[key];
+          const newValue = expression.operator === '++' ? value + 1 : value - 1;
+
+          object[key] = newValue;
+
+          return expression.prefix ? newValue : value;
+        }
+      } else {
+        const key = visitNode({ node: expression.argument.property, scope });
+        const value = object[key];
+        const newValue = expression.operator === '++' ? value + 1 : value - 1;
+
+        object[key] = newValue;
+
+        return expression.prefix ? newValue : value;
+      }
+    }
+  }
+
   function visitNode({ node, scope }: { node: AnyNode, scope: object }): any {
     switch (node.type) {
       case 'ExpressionStatement': return visitExpressionStatement({ node, scope });
@@ -578,6 +631,7 @@ export function topscript(
       case 'WhileStatement': return visitWhileStatement({ node, scope });
       case 'ConditionalExpression': return visitConditionalExpression({ node, scope });
       case 'ChainExpression': return visitChainExpression({ node, scope });
+      case 'UpdateExpression': return visitUpdateExpression({ expression: node, scope });
       default: throw new Error(`Unknown node type ${node.type}`);
     };
   }
