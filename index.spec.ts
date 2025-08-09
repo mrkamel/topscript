@@ -31,6 +31,374 @@ describe('topscript', () => {
   });
 
   describe('topscript', () => {
+    describe('arithmetic edge cases', () => {
+      it('handles division by zero', () => {
+        expect(topscript('1 / 0')).toBe(Infinity);
+        expect(topscript('-1 / 0')).toBe(-Infinity);
+        expect(topscript('0 / 0')).toBeNaN();
+      });
+
+      it('handles very large numbers', () => {
+        expect(topscript('Number.MAX_SAFE_INTEGER + 1', { Number })).toBe(9007199254740992);
+        expect(topscript('Number.MIN_SAFE_INTEGER - 1', { Number })).toBe(-9007199254740992);
+        expect(topscript('1e308 * 2')).toBe(Infinity);
+        expect(topscript('-1e308 * 2')).toBe(-Infinity);
+      });
+
+      it('handles floating point precision', () => {
+        expect(topscript('0.1 + 0.2')).toBeCloseTo(0.3, 10);
+        expect(topscript('0.1 + 0.2 === 0.3')).toBe(false);
+        expect(topscript('(0.1 * 10 + 0.2 * 10) / 10')).toBe(0.3);
+      });
+
+      it('handles modulo with negative numbers', () => {
+        expect(topscript('-5 % 3')).toBe(-2);
+        expect(topscript('5 % -3')).toBe(2);
+        expect(topscript('-5 % -3')).toBe(-2);
+      });
+
+      it('handles exponentiation edge cases', () => {
+        expect(topscript('0 ** 0')).toBe(1);
+        expect(topscript('(-2) ** 3')).toBe(-8);
+        expect(topscript('2 ** -3')).toBe(0.125);
+        expect(topscript('Infinity ** 0')).toBe(1);
+        expect(topscript('0 ** -1')).toBe(Infinity);
+      });
+    });
+
+    describe('special values', () => {
+      it('handles NaN operations', () => {
+        expect(topscript('NaN')).toBeNaN();
+        expect(topscript('NaN + 1')).toBeNaN();
+        expect(topscript('NaN * 0')).toBeNaN();
+        expect(topscript('NaN === NaN')).toBe(false);
+        expect(topscript('NaN == NaN')).toBe(false);
+        expect(topscript('isNaN(NaN)', { isNaN })).toBe(true);
+      });
+
+      it('handles Infinity operations', () => {
+        expect(topscript('Infinity')).toBe(Infinity);
+        expect(topscript('Infinity + 1')).toBe(Infinity);
+        expect(topscript('Infinity - Infinity')).toBeNaN();
+        expect(topscript('Infinity * 0')).toBeNaN();
+        expect(topscript('Infinity / Infinity')).toBeNaN();
+        expect(topscript('1 / Infinity')).toBe(0);
+        expect(topscript('-Infinity')).toBe(-Infinity);
+      });
+
+      it('handles undefined operations', () => {
+        expect(topscript('undefined + 1')).toBeNaN();
+        expect(topscript('undefined + "test"')).toBe('undefinedtest');
+        expect(topscript('!undefined')).toBe(true);
+        expect(topscript('undefined == null')).toBe(true);
+        expect(topscript('undefined === null')).toBe(false);
+      });
+
+      it('handles null operations', () => {
+        expect(topscript('null + 1')).toBe(1);
+        expect(topscript('null + "test"')).toBe('nulltest');
+        expect(topscript('!null')).toBe(true);
+        expect(topscript('+null')).toBe(0);
+        expect(topscript('null * 5')).toBe(0);
+      });
+    });
+
+    describe('bitwise operations edge cases', () => {
+      it('handles bitwise operations', () => {
+        expect(topscript('5 & 3')).toBe(1);
+        expect(topscript('5 | 3')).toBe(7);
+        expect(topscript('5 ^ 3')).toBe(6);
+        expect(topscript('~5')).toBe(-6);
+        expect(topscript('5 << 1')).toBe(10);
+        expect(topscript('5 >> 1')).toBe(2);
+        expect(topscript('5 >>> 1')).toBe(2);
+      });
+
+      it('handles bitwise operations with negative numbers', () => {
+        expect(topscript('-5 & 3')).toBe(3);
+        expect(topscript('-5 | 3')).toBe(-5);
+        expect(topscript('-5 ^ 3')).toBe(-8);
+        expect(topscript('~(-5)')).toBe(4);
+        expect(topscript('-5 << 1')).toBe(-10);
+        expect(topscript('-5 >> 1')).toBe(-3);
+        expect(topscript('-5 >>> 1')).toBe(2147483645);
+      });
+
+      it('handles bitwise operations with large numbers', () => {
+        expect(topscript('(1 << 31) >> 31')).toBe(-1);
+        expect(topscript('(1 << 31) >>> 31')).toBe(1);
+        expect(topscript('0xFFFFFFFF & 0xFF')).toBe(255);
+        expect(topscript('~0')).toBe(-1);
+      });
+    });
+
+    describe('type coercion edge cases', () => {
+      it('handles string to number coercion', () => {
+        expect(topscript('"5" * 2')).toBe(10);
+        expect(topscript('"5" - 2')).toBe(3);
+        expect(topscript('"5" / 2')).toBe(2.5);
+        expect(topscript('"5" % 2')).toBe(1);
+        expect(topscript('"5" + 2')).toBe('52');
+        expect(topscript('+"5"')).toBe(5);
+        expect(topscript('+""')).toBe(0);
+        expect(topscript('+" "')).toBe(0);
+      });
+
+      it('handles boolean coercion', () => {
+        expect(topscript('true + true')).toBe(2);
+        expect(topscript('true * false')).toBe(0);
+        expect(topscript('true - false')).toBe(1);
+        expect(topscript('+true')).toBe(1);
+        expect(topscript('+false')).toBe(0);
+        expect(topscript('!0')).toBe(true);
+        expect(topscript('!""')).toBe(true);
+        expect(topscript('!!" "')).toBe(true);
+      });
+
+      it('handles comparison coercion', () => {
+        expect(topscript('"5" == 5')).toBe(true);
+        expect(topscript('"5" === 5')).toBe(false);
+        expect(topscript('0 == false')).toBe(true);
+        expect(topscript('0 === false')).toBe(false);
+        expect(topscript('"" == false')).toBe(true);
+        expect(topscript('"0" == false')).toBe(true);
+        expect(topscript('[1, 2] == "1,2"')).toBe(true);
+      });
+
+      it('handles typeof operator', () => {
+        expect(topscript('typeof 5')).toBe('number');
+        expect(topscript('typeof "test"')).toBe('string');
+        expect(topscript('typeof true')).toBe('boolean');
+        expect(topscript('typeof undefined')).toBe('undefined');
+        expect(topscript('typeof null')).toBe('object');
+        expect(topscript('typeof {}')).toBe('object');
+        expect(topscript('typeof []')).toBe('object');
+        expect(topscript('typeof (() => {})')).toBe('function');
+        expect(topscript('typeof NaN')).toBe('number');
+        expect(topscript('typeof Infinity')).toBe('number');
+      });
+
+      it('handles void operator', () => {
+        expect(topscript('void 0')).toBeUndefined();
+        expect(topscript('void 1')).toBeUndefined();
+        expect(topscript('void "test"')).toBeUndefined();
+        expect(topscript('void (1 + 2)')).toBeUndefined();
+      });
+    });
+
+    describe('complex nested expressions', () => {
+      it('handles deeply nested arithmetic', () => {
+        expect(topscript('((2 + 3) * (4 - 1)) / ((5 + 1) / 2)')).toBe(5);
+        expect(topscript('1 + 2 * 3 - 4 / 2 + 5 ** 2')).toBe(30);
+      });
+
+      it('handles complex logical expressions', () => {
+        expect(topscript('true && (false || (true && !false))')).toBe(true);
+        expect(topscript('(5 > 3) && (2 < 4) || (1 === 1) && !(false)')).toBe(true);
+        expect(topscript('null || undefined || 0 || "" || false || "truthy"')).toBe('truthy');
+      });
+
+      it('handles nested ternary operators', () => {
+        expect(topscript('true ? (false ? 1 : 2) : 3')).toBe(2);
+        expect(topscript('5 > 3 ? 2 < 4 ? "a" : "b" : "c"')).toBe('a');
+        expect(topscript('(true ? 1 : 2) + (false ? 3 : 4)')).toBe(5);
+      });
+
+      it('handles complex member access chains', () => {
+        expect(topscript(`
+          const obj = {
+            a: {
+              b: {
+                c: [
+                  { d: { e: 'result' } }
+                ]
+              }
+            }
+          };
+          obj.a.b.c[0].d.e
+        `)).toBe('result');
+      });
+
+      it('handles mixed operations with precedence', () => {
+        expect(topscript('2 + 3 * 4')).toBe(14);
+        expect(topscript('(2 + 3) * 4')).toBe(20);
+        expect(topscript('2 * 3 + 4 * 5')).toBe(26);
+        expect(topscript('2 ** 3 ** 2')).toBe(512);
+        expect(topscript('(2 ** 3) ** 2')).toBe(64);
+      });
+    });
+
+    describe('error boundaries and edge cases', () => {
+      it('handles accessing properties of primitives', () => {
+        expect(topscript('"hello".length')).toBe(5);
+        expect(topscript('(5).toString()')).toBe('5');
+        expect(topscript('true.toString()')).toBe('true');
+      });
+
+      it('handles empty statements', () => {
+        expect(topscript(';')).toBeUndefined();
+        expect(topscript(';;')).toBeUndefined();
+        expect(topscript('1;;2')).toBe(2);
+      });
+
+      it('handles expressions as statements', () => {
+        expect(topscript('1 + 2; 3 + 4')).toBe(7);
+        expect(topscript('const x = 5; x; x + 1')).toBe(6);
+      });
+
+      it('handles empty arrays and objects', () => {
+        expect(topscript('[]')).toEqual([]);
+        expect(topscript('({})')).toEqual({});
+        expect(topscript('[].length')).toBe(0);
+        expect(topscript('Object.keys({})', { Object })).toEqual([]);
+      });
+
+      it('handles array holes', () => {
+        expect(topscript('[1,,3]')).toEqual([1, undefined, 3]);
+        expect(topscript('[1,,3].length')).toBe(3);
+        expect(topscript('[,,,]')).toEqual([undefined, undefined, undefined]);
+
+        expect(topscript('[1,null,3]')).toEqual([1, null, 3]);
+        expect(topscript('[1,undefined,3]')).toEqual([1, undefined, 3]);
+      });
+
+      it('handles in operator', () => {
+        expect(topscript('"length" in [1, 2, 3]')).toBe(true);
+        expect(topscript('"a" in { a: 1 }')).toBe(true);
+        expect(topscript('"b" in { a: 1 }')).toBe(false);
+        expect(topscript('0 in [1, 2]')).toBe(true);
+        expect(topscript('3 in [1, 2]')).toBe(false);
+      });
+
+      it('handles instanceof operator', () => {
+        expect(topscript('[] instanceof Array', { Array })).toBe(true);
+        expect(topscript('({}) instanceof Object', { Object })).toBe(true);
+        expect(topscript('(() => {}) instanceof Function', { Function })).toBe(true);
+        expect(topscript('"test" instanceof String', { String })).toBe(false);
+        expect(topscript('5 instanceof Number', { Number })).toBe(false);
+      });
+    });
+
+    describe('function and closure edge cases', () => {
+      it('handles functions with no return', () => {
+        expect(topscript('function f() { 1 + 2; } f()')).toBeUndefined();
+        expect(topscript('const f = () => { 1 + 2; }; f()')).toBeUndefined();
+      });
+
+      it('handles nested function declarations', () => {
+        expect(topscript(`
+          function outer() {
+            function inner() {
+              function innermost() {
+                return 'deep';
+              }
+              return innermost();
+            }
+            return inner();
+          }
+          outer()
+        `)).toBe('deep');
+      });
+
+      it('handles closure with modified variables', () => {
+        expect(topscript(`
+          function makeAdder(x) {
+            return function(y) {
+              x = x + 1;
+              return x + y;
+            }
+          }
+          const add5 = makeAdder(5);
+          [add5(1), add5(1)]
+        `)).toEqual([7, 8]);
+      });
+
+      it('handles recursive functions', () => {
+        expect(topscript(`
+          function factorial(n) {
+            if (n <= 1) return 1;
+            return n * factorial(n - 1);
+          }
+          factorial(5)
+        `)).toBe(120);
+      });
+
+      it('handles immediately invoked function expressions', () => {
+        expect(topscript('(function() { return 42; })()')).toBe(42);
+        expect(topscript('(() => 42)()')).toBe(42);
+        expect(topscript('(function(x, y) { return x + y; })(2, 3)')).toBe(5);
+      });
+
+      it('handles function expressions as values', () => {
+        expect(topscript(`
+          const funcs = [
+            () => 1,
+            () => 2,
+            () => 3
+          ];
+          funcs.map(f => f()).reduce((a, b) => a + b, 0)
+        `)).toBe(6);
+      });
+
+      it('handles arguments with default values simulation', () => {
+        expect(topscript(`
+          function greet(name) {
+            name = name || 'World';
+            return 'Hello, ' + name;
+          }
+          [greet('Alice'), greet()]
+        `)).toEqual(['Hello, Alice', 'Hello, World']);
+      });
+    });
+
+    describe('loop edge cases', () => {
+      it('handles while loop with break simulation', () => {
+        expect(topscript(`
+          let i = 0;
+          let result = 0;
+          while (i < 10) {
+            result += i;
+            i++;
+            if (i === 5) {
+              i = 10;
+            }
+          }
+          result
+        `)).toBe(10);
+      });
+
+      it('handles while loop with continue simulation', () => {
+        expect(topscript(`
+          let i = 0;
+          let result = 0;
+          while (i < 5) {
+            i++;
+            if (i === 3) {
+              i++;
+            }
+            result += i;
+          }
+          result
+        `)).toBe(12);
+      });
+
+      it('handles nested while loops', () => {
+        expect(topscript(`
+          let result = 0;
+          let i = 0;
+          while (i < 3) {
+            let j = 0;
+            while (j < 3) {
+              result += i * j;
+              j++;
+            }
+            i++;
+          }
+          result
+        `)).toBe(9);
+      });
+    });
+
     it('throws when the stack size exceeds the limit', () => {
       expect(() => topscript('function f() { f(); } f();', {}, { maxStackSize: 10 })).toThrow('Maximum stack size exceeded');
 
