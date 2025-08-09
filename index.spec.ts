@@ -162,7 +162,7 @@ describe('topscript', () => {
         expect(topscript('0 === false')).toBe(false);
         expect(topscript('"" == false')).toBe(true);
         expect(topscript('"0" == false')).toBe(true);
-        expect(topscript('[1,2] == "1,2"')).toBe(true);
+        expect(topscript('[1, 2] == "1,2"')).toBe(true);
       });
 
       it('handles typeof operator', () => {
@@ -263,11 +263,11 @@ describe('topscript', () => {
       });
 
       it('handles in operator', () => {
-        expect(topscript('"length" in [1,2,3]')).toBe(true);
+        expect(topscript('"length" in [1, 2, 3]')).toBe(true);
         expect(topscript('"a" in { a: 1 }')).toBe(true);
         expect(topscript('"b" in { a: 1 }')).toBe(false);
-        expect(topscript('0 in [1,2,3]')).toBe(true);
-        expect(topscript('3 in [1,2,3]')).toBe(false);
+        expect(topscript('0 in [1, 2]')).toBe(true);
+        expect(topscript('3 in [1, 2]')).toBe(false);
       });
 
       it('handles instanceof operator', () => {
