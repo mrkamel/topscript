@@ -348,7 +348,7 @@ describe('topscript', () => {
         if (false) {
           x = 1;
         } else if (true) {
-        x = 2;
+          x = 2;
         }
 
         x
@@ -470,17 +470,17 @@ describe('topscript', () => {
       expect(topscript('const obj = { a: {} }; obj?.a?.b?.()')).toBeUndefined();
       expect(() => topscript('const obj = { a: undefined }; obj?.a.c()')).toThrow('Cannot read properties of undefined (reading \'c\')');
       expect(topscript('const obj = null; obj?.a.b()')).toBeUndefined();
-      expect(topscript(`const obj = null; obj?.['a'].b()`)).toBeUndefined();
-      expect(topscript(`const obj = null; const key = 'a'; obj?.[key].b()`)).toBeUndefined();
-      expect(topscript(`const obj = null; const key = () => 'a'; obj?.[key()].b()`)).toBeUndefined();
-      expect(topscript(`const obj = {}; obj['a']?.()`)).toBeUndefined();
-      expect(topscript(`const obj = {}; const key = 'a'; obj[key]?.()`)).toBeUndefined();
-      expect(topscript(`const arr = []; arr[0]?.()`)).toBeUndefined();
-      expect(topscript(`const arr = null; arr?.[0]()`)).toBeUndefined();
-      expect(topscript(`const arr = null; const i = 0; arr?.[i]()`)).toBeUndefined();
-      expect(topscript(`const arr = null; const index = () =>  0; arr?.[index()]()`)).toBeUndefined();
-      expect(topscript(`const arr = []; const i = 0; arr[i]?.()`)).toBeUndefined();
-      expect(topscript(`const arr = []; const index = () => 0; arr[index()]?.()`)).toBeUndefined();
+      expect(topscript('const obj = null; obj?.["a"].b()')).toBeUndefined();
+      expect(topscript('const obj = null; const key = "a"; obj?.[key].b()')).toBeUndefined();
+      expect(topscript('const obj = null; const key = () => "a"; obj?.[key()].b()')).toBeUndefined();
+      expect(topscript('const obj = {}; obj["a"]?.()')).toBeUndefined();
+      expect(topscript('const obj = {}; const key = "a"; obj[key]?.()')).toBeUndefined();
+      expect(topscript('const arr = []; arr[0]?.()')).toBeUndefined();
+      expect(topscript('const arr = null; arr?.[0]()')).toBeUndefined();
+      expect(topscript('const arr = null; const i = 0; arr?.[i]()')).toBeUndefined();
+      expect(topscript('const arr = null; const index = () =>  0; arr?.[index()]()')).toBeUndefined();
+      expect(topscript('const arr = []; const i = 0; arr[i]?.()')).toBeUndefined();
+      expect(topscript('const arr = []; const index = () => 0; arr[index()]?.()')).toBeUndefined();
 
       expect(topscript('const obj = { a: "b", c: "d" }; delete obj?.a; obj')).toEqual({ c: 'd' });
       expect(topscript('const obj = {}; delete obj.a?.b')).toEqual(true);
@@ -718,8 +718,8 @@ describe('topscript', () => {
         greet('World')
       `)).toBe('Hello, World');
 
-      expect(topscript(`const add = (a, b) => a + b; add(2, 3)`)).toBe(5);
-      expect(topscript(`const obj = { method: () => 'method called' }; obj.method()`)).toBe('method called');
+      expect(topscript('const add = (a, b) => a + b; add(2, 3)')).toBe(5);
+      expect(topscript('const obj = { method: () => "called" }; obj.method()')).toBe('called');
 
       expect(topscript(`
         const obj = {
@@ -737,9 +737,9 @@ describe('topscript', () => {
         obj[key]()
       `)).toBe('method called');
 
-      expect(topscript(`const arr = [1, 2, 3]; arr.map(x => x * 2)`)).toEqual([2, 4, 6]);
-      expect(topscript(`const arr = [() => 'method called']; arr[0]()`)).toBe('method called');
-      expect(topscript(`const arr = [() => 'method called']; const i = 0; arr[i]()`)).toBe('method called');
+      expect(topscript('const arr = [1, 2, 3]; arr.map(x => x * 2)')).toEqual([2, 4, 6]);
+      expect(topscript('const arr = [() => "called"]; arr[0]()')).toBe('called');
+      expect(topscript('const arr = [() => "called"]; const i = 0; arr[i]()')).toBe('called');
 
       expect(topscript(`
         const arr = [() => 'method called'];

@@ -351,7 +351,7 @@ export function topscript(
               return object[visitNode({ node: expression.callee.property, scope })];
             }
 
-            return visitIdentifier({ node: expression.callee.property, scope: object, optional: expression.callee.optional, memberAccess: true })
+            return visitIdentifier({ node: expression.callee.property, scope: object, optional: expression.callee.optional, memberAccess: true });
           } else if (expression.callee.property.type === 'Literal') {
             return object[expression.callee.property.value as any];
           }
