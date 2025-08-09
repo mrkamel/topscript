@@ -235,6 +235,11 @@ export function topscript(
         if (node.optional && (object === undefined || object === null)) throw new SafeNavigationException();
 
         if (node.property.type === 'Identifier') {
+          if (node.computed) {
+            delete object[visitNode({ node: node.property, scope })];
+            return;
+          }
+
           delete object[node.property.name];
           return;
         } else {
@@ -338,12 +343,24 @@ export function topscript(
       case 'MemberExpression': {
         const object = visitNode({ node: expression.callee.object, scope });
 
-        const fn = expression.callee.property.type === 'Identifier'
-          ? visitIdentifier({ node: expression.callee.property, scope: object, optional: expression.callee.optional, memberAccess: true })
-          : visitNode({ node: expression.callee.property, scope: object });
+        const fn = (() => {
+          if (expression.callee.optional && (object === undefined || object === null)) throw new SafeNavigationException();
+
+          if (expression.callee.property.type === 'Identifier') {
+            if (expression.callee.computed) {
+              return object[visitNode({ node: expression.callee.property, scope })];
+            }
+
+            return visitIdentifier({ node: expression.callee.property, scope: object, optional: expression.callee.optional, memberAccess: true });
+          } else if (expression.callee.property.type === 'Literal') {
+            return object[expression.callee.property.value as any];
+          }
+
+          return object[visitNode({ node: expression.callee.property, scope })];
+        })();
 
         if (typeof fn !== 'function') {
-          if (expression.callee.optional && (fn === undefined || fn === null)) throw new SafeNavigationException();
+          if (expression.optional && (fn === undefined || fn === null)) throw new SafeNavigationException();
 
           if (expression.callee.property.type === 'Identifier') {
             throw new Error(`${expression.callee.property.name} is not a function`);
@@ -563,10 +580,12 @@ export function topscript(
       if (expression.operator === '++') {
         const newValue = value + 1;
         redefineProperty(scope, expression.argument.name, { value: newValue });
+
         return expression.prefix ? newValue : value;
       } else if (expression.operator === '--') {
         const newValue = value - 1;
         redefineProperty(scope, expression.argument.name, { value: newValue });
+
         return expression.prefix ? newValue : value;
       } else {
         throw new Error(`Unknown update operator ${expression.operator}`);
@@ -604,6 +623,8 @@ export function topscript(
         return expression.prefix ? newValue : value;
       }
     }
+
+    throw new Error(`Unknown update expression type ${expression.argument.type}`);
   }
 
   function visitNode({ node, scope }: { node: AnyNode, scope: object }): any {
