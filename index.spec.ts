@@ -257,6 +257,9 @@ describe('topscript', () => {
         expect(topscript('[1,,3]')).toEqual([1, undefined, 3]);
         expect(topscript('[1,,3].length')).toBe(3);
         expect(topscript('[,,,]')).toEqual([undefined, undefined, undefined]);
+
+        expect(topscript('[1,null,3]')).toEqual([1, null, 3]);
+        expect(topscript('[1,undefined,3]')).toEqual([1, undefined, 3]);
       });
 
       it('handles in operator', () => {
