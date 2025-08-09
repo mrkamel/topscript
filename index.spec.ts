@@ -724,28 +724,18 @@ describe('topscript', () => {
       expect(topscript(`
         const obj = {
           method: function() {
-            return 'method called';
+            return 'called';
           }
         };
 
         obj['method']()
-      `)).toBe('method called');
+      `)).toBe('called');
 
-      expect(topscript(`
-        const obj = { method: () => 'method called' };
-        const key = 'method';
-        obj[key]()
-      `)).toBe('method called');
-
+      expect(topscript('const obj = { method: () => "called" }; const key = "method"; obj[key]()')).toBe('called');
       expect(topscript('const arr = [1, 2, 3]; arr.map(x => x * 2)')).toEqual([2, 4, 6]);
       expect(topscript('const arr = [() => "called"]; arr[0]()')).toBe('called');
       expect(topscript('const arr = [() => "called"]; const i = 0; arr[i]()')).toBe('called');
-
-      expect(topscript(`
-        const arr = [() => 'method called'];
-        const index = () => 0;
-        arr[index()]()
-      `)).toBe('method called');
+      expect(topscript('const arr = [() => "called"]; const index = () => 0; arr[index()]()')).toBe('called');
     });
   });
 });
