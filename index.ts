@@ -4,7 +4,7 @@ import {
   VariableDeclaration, Literal, BlockStatement, ArrowFunctionExpression, FunctionDeclaration,
   FunctionExpression, ReturnStatement, Pattern, AnonymousFunctionDeclaration, MemberExpression,
   Expression, Statement, TemplateLiteral, WhileStatement, ConditionalExpression,
-  ChainExpression, Identifier, UpdateExpression, ThisExpression,
+  ChainExpression, Identifier, UpdateExpression,
 } from 'acorn';
 
 const ECMA_VERSION = 2020;
