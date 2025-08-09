@@ -3,14 +3,8 @@ import {
   BinaryExpression, LogicalExpression, UnaryExpression, AssignmentExpression, CallExpression,
   VariableDeclaration, Literal, BlockStatement, ArrowFunctionExpression, FunctionDeclaration,
   FunctionExpression, ReturnStatement, Pattern, AnonymousFunctionDeclaration, MemberExpression,
-  Expression,
-  Statement,
-  TemplateLiteral,
-  WhileStatement,
-  ConditionalExpression,
-  ChainExpression,
-  Identifier,
-  UpdateExpression,
+  Expression, Statement, TemplateLiteral, WhileStatement, ConditionalExpression,
+  ChainExpression, Identifier, UpdateExpression, ThisExpression,
 } from 'acorn';
 
 const ECMA_VERSION = 2020;
@@ -100,7 +94,7 @@ export function topscript(
 
     for (const element of expression.elements) {
       if (element === null) {
-        res.push(null);
+        res.push(undefined);
         continue;
       }
 
@@ -198,11 +192,14 @@ export function topscript(
       case '>': return left() > right();
       case '>=': return left() >= right();
       case '<<': return left() << right();
+      case '>>>': return left() >>> right();
       case '>>': return left() >> right();
       case '==': return left() == right();
       case '===': return left() === right();
       case '!=': return left() != right();
       case '!==': return left() !== right();
+      case 'in': return left() in right();
+      case 'instanceof': return left() instanceof right();
       default: throw new Error(`Unknown binary operator ${expression.operator}`);
     }
   }
@@ -256,6 +253,9 @@ export function topscript(
       case '-': return -(visitNode({ node: expression.argument, scope }));
       case '+': return +(visitNode({ node: expression.argument, scope }));
       case '!': return !(visitNode({ node: expression.argument, scope }));
+      case '~': return ~(visitNode({ node: expression.argument, scope }));
+      case 'typeof': return typeof visitNode({ node: expression.argument, scope });
+      case 'void': return void visitNode({ node: expression.argument, scope });
       case 'delete': return visitDelete({ node: expression.argument, scope });
       default:
         throw new Error(`Unknown unary operator ${expression.operator}`);
@@ -330,6 +330,9 @@ export function topscript(
         return;
       case '>>=':
         assignWithOperator((a, b) => a >> b);
+        return;
+      case '>>>=':
+        assignWithOperator((a, b) => a >>> b);
         return;
       default:
         throw new Error(`Unknown assignment operator ${expression.operator}`);
@@ -432,6 +435,11 @@ export function topscript(
         try {
           const res = node.body.map((item) => visitNode({ node: item, scope: newScope }));
 
+          // If params are provided, we return undefined because functions with parameters
+          // should not return a value unless explicitly stated with a return statement.
+
+          if (params !== undefined) return;
+
           return res[res.length - 1];
         } catch (error) {
           if (error instanceof ReturnException) return error.value;
@@ -511,12 +519,12 @@ export function topscript(
   function visitParamNode({ node, scope, values, index }: { node: Pattern, scope: object, values: any[], index: number }) {
     switch (node.type) {
       case 'Identifier':
-        Object.defineProperty(scope, node.name, { value: values[index] });
+        Object.defineProperty(scope, node.name, { value: values[index], writable: true });
         return;
       case 'RestElement':
         if (node.argument.type !== 'Identifier') throw new Error(`Unknown argument type ${node.argument.type}`);
 
-        Object.defineProperty(scope, node.argument.name, { value: values.slice(index) });
+        Object.defineProperty(scope, node.argument.name, { value: values.slice(index), writable: true });
         return;
       default:
         throw new Error(`Unknown param type ${node.type}`);
@@ -564,6 +572,8 @@ export function topscript(
 
   function visitIdentifier({ node, scope, optional, memberAccess }: { node: Identifier, scope: object, optional?: boolean, memberAccess?: boolean }): any {
     if (node.name === 'undefined') return undefined;
+    if (node.name === 'NaN') return NaN;
+    if (node.name === 'Infinity') return Infinity;
 
     if (optional && (scope === undefined || scope === null)) throw new SafeNavigationException();
     if (!hasProperty(scope, node.name) && !memberAccess) throw new Error(`Unknown variable ${node.name}`);
