@@ -5,6 +5,7 @@ import {
   FunctionExpression, ReturnStatement, Pattern, AnonymousFunctionDeclaration, MemberExpression,
   Expression, Statement, TemplateLiteral, WhileStatement, ConditionalExpression,
   ChainExpression, Identifier, UpdateExpression,
+  NewExpression,
 } from 'acorn';
 
 const ECMA_VERSION = 2020;
@@ -637,6 +638,19 @@ export function topscript(
     throw new Error(`Unknown update expression type ${expression.argument.type}`);
   }
 
+  function visitNewExpression({ expression, scope }: { expression: NewExpression, scope: object }): any {
+    const args = expression.arguments.map((argument) => visitNode({ node: argument, scope }));
+    const callee = visitNode({ node: expression.callee, scope });
+
+    if (typeof callee !== 'function') {
+      if (expression.callee.type === 'Identifier') throw new Error(`${expression.callee.name} is not a constructor`);
+
+      throw new Error(`${callee} is not a constructor`);
+    }
+
+    return new (callee as any)(...args);
+  }
+
   function visitNode({ node, scope }: { node: AnyNode, scope: object }): any {
     switch (node.type) {
       case 'ExpressionStatement': return visitExpressionStatement({ node, scope });
@@ -663,6 +677,7 @@ export function topscript(
       case 'ConditionalExpression': return visitConditionalExpression({ node, scope });
       case 'ChainExpression': return visitChainExpression({ node, scope });
       case 'UpdateExpression': return visitUpdateExpression({ expression: node, scope });
+      case 'NewExpression': return visitNewExpression({ expression: node, scope });
       default: throw new Error(`Unknown node type ${node.type}`);
     };
   }

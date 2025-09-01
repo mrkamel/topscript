@@ -66,6 +66,65 @@ describe('topscript', () => {
       });
     });
 
+    describe('new operator', () => {
+      it('handles new operator with built-in constructors', () => {
+        expect(topscript('new Date(0)', { Date })).toEqual(new Date(0));
+        expect(topscript('new Array(3)', { Array })).toEqual(new Array(3));
+        expect(topscript('new Array(1 + 2)', { Array })).toEqual(new Array(3));
+        expect(topscript('new RegExp("ab+c")', { RegExp })).toEqual(new RegExp('ab+c'));
+        expect(topscript('new String("test")', { String })).toEqual(new String('test'));
+        expect(topscript('new String(`string ${1 + 1}`)', { String })).toEqual(new String('string 2'));
+        expect(topscript('new Number(42)', { Number })).toEqual(new Number(42));
+        expect(topscript('new Error("error")', { Error })).toEqual(new Error('error'));
+      });
+
+      it('handles new operator with custom constructors', () => {
+        const context = {
+          Person: function (this: any, name: string, age: number) {
+            this.name = name;
+            this.age = age;
+          },
+        };
+
+        expect(topscript('new Person("Name", 30)', context)).toEqual({ name: 'Name', age: 30 });
+      });
+
+      it('throws when using new with non-constructors', () => {
+        expect(() => topscript('new (function() {})()')).toThrow('callee is not a constructor');
+        expect(() => topscript('new ({})()')).toThrow('[object Object] is not a constructor');
+        expect(() => topscript('new (null)()')).toThrow('null is not a constructor');
+      });
+
+      it('handles member expression constructors', () => {
+        const context = {
+          namespace: {
+            SomeConstructor: function (value1: string, value2: string) {
+              this.value1 = value1;
+              this.value2 = value2;
+            },
+          },
+        };
+
+        expect(topscript('new namespace.SomeConstructor("value1", "value2")', context)).toEqual({ value1: 'value1', value2: 'value2' });
+        expect(() => topscript('new namespace.NonExistent()', context)).toThrow('undefined is not a constructor');
+      });
+
+      it('handles new operator with prototype chain', () => {
+        function Animal(this: any, name: string) {
+          this.name = name;
+        }
+
+        Animal.prototype.speak = function () {
+          return `${this.name} makes a sound`;
+        };
+
+        const result = topscript('const dog = new Animal("Dog"); dog', { Animal });
+
+        expect(result.name).toBe('Dog');
+        expect(result.speak()).toBe('Dog makes a sound');
+      });
+    });
+
     describe('special values', () => {
       it('handles NaN operations', () => {
         expect(topscript('NaN')).toBeNaN();
@@ -610,7 +669,7 @@ describe('topscript', () => {
       expect(topscript('`hello ${1 + 2}`')).toBe('hello 3');
       expect(topscript('(() => `hello, ${"world"}`)()')).toBe('hello, world');
     });
-    
+
     it('evaluates complex template literals correctly', () => {
       expect(topscript('``')).toBe('');
       expect(topscript('`just text`')).toBe('just text');
@@ -772,34 +831,34 @@ describe('topscript', () => {
       expect(topscript(`
         let i = 0;
         let sum = 0;
-        
+
         while (i < 5) {
           sum += i;
           i += 1;
         }
-        
+
         sum
       `)).toBe(10);
-      
+
       expect(topscript(`
         let i = 10;
-        
+
         while (i > 0) {
           i -= 1;
         }
-        
+
         i
       `)).toBe(0);
-      
+
       expect(topscript(`
         const arr = [];
         let i = 0;
-        
+
         while (i < 3) {
           arr.push(i);
           i += 1;
         }
-        
+
         arr
       `)).toEqual([0, 1, 2]);
     });
@@ -869,7 +928,7 @@ describe('topscript', () => {
       expect(topscript('undefined', {}, { allowReturnOutsideFunction: true })).toBeUndefined();
       expect(() => topscript('return 42')).toThrow('\'return\' outside of function (1:0)');
     });
-    
+
     it('evaluates compound assignment operators', () => {
       expect(topscript('let x = 5; x += 3; x')).toBe(8);
       expect(topscript('let x = 5; x -= 3; x')).toBe(2);
@@ -877,25 +936,25 @@ describe('topscript', () => {
       expect(topscript('let x = 6; x /= 3; x')).toBe(2);
       expect(topscript('let x = 7; x %= 3; x')).toBe(1);
       expect(topscript('let x = 2; x **= 3; x')).toBe(8);
-      
+
       expect(topscript('let x = 5; x &= 3; x')).toBe(1);
       expect(topscript('let x = 5; x |= 3; x')).toBe(7);
       expect(topscript('let x = 5; x ^= 3; x')).toBe(6);
       expect(topscript('let x = 5; x <<= 1; x')).toBe(10);
       expect(topscript('let x = 5; x >>= 1; x')).toBe(2);
-      
+
       expect(topscript(`
         const obj = { a: 5 };
         obj.a += 3;
         obj
       `)).toEqual({ a: 8 });
-      
+
       expect(topscript(`
         const arr = [1, 2, 3];
         arr[1] *= 3;
         arr
       `)).toEqual([1, 6, 3]);
-      
+
       expect(topscript(`
         const obj = { value: 5 };
         obj['value'] += 3;
