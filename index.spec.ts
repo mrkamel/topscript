@@ -66,6 +66,47 @@ describe('topscript', () => {
       });
     });
 
+    describe('new operator', () => {
+      it('handles new operator with built-in constructors', () => {
+        expect(topscript('new Date(0)', { Date })).toEqual(new Date(0));
+        expect(topscript('new Array(3)', { Array })).toEqual(new Array(3));
+        expect(topscript('new RegExp("ab+c")', { RegExp })).toEqual(new RegExp('ab+c'));
+        expect(topscript('new String("test")', { String })).toEqual(new String('test'));
+        expect(topscript('new Number(42)', { Number })).toEqual(new Number(42));
+        expect(topscript('new Error("error message")', { Error })).toEqual(new Error('error message'));
+      });
+
+      it('handles new operator with custom constructors', () => {
+        const context = {
+          Person: function (this: any, name: string, age: number) {
+            this.name = name;
+            this.age = age;
+          },
+        };
+
+        expect(topscript('new Person("Alice", 30)', context)).toEqual({ name: 'Alice', age: 30 });
+      });
+
+      it('throws when using new with non-constructors', () => {
+        expect(() => topscript('new (function() {})()')).toThrow('callee is not a constructor');
+        expect(() => topscript('new ({})()')).toThrow('[object Object] is not a constructor');
+        expect(() => topscript('new (null)()')).toThrow('null is not a constructor');
+      });
+
+      it('handles member expression constructors', () => {
+        const context = {
+          namespace: {
+            SomeConstructor: function (this: any, value: string) {
+              this.value = value;
+            },
+          },
+        };
+
+        expect(topscript('new namespace.SomeConstructor("test")', context)).toEqual({ value: 'test' });
+        expect(() => topscript('new namespace.NonExistent()', context)).toThrow('undefined is not a constructor');
+      });
+    });
+
     describe('special values', () => {
       it('handles NaN operations', () => {
         expect(topscript('NaN')).toBeNaN();
