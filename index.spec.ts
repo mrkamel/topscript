@@ -70,10 +70,12 @@ describe('topscript', () => {
       it('handles new operator with built-in constructors', () => {
         expect(topscript('new Date(0)', { Date })).toEqual(new Date(0));
         expect(topscript('new Array(3)', { Array })).toEqual(new Array(3));
+        expect(topscript('new Array(1 + 2)', { Array })).toEqual(new Array(3));
         expect(topscript('new RegExp("ab+c")', { RegExp })).toEqual(new RegExp('ab+c'));
         expect(topscript('new String("test")', { String })).toEqual(new String('test'));
+        expect(topscript('new String(`string ${1 + 1}`)', { String })).toEqual(new String('string 2'));
         expect(topscript('new Number(42)', { Number })).toEqual(new Number(42));
-        expect(topscript('new Error("error message")', { Error })).toEqual(new Error('error message'));
+        expect(topscript('new Error("error")', { Error })).toEqual(new Error('error'));
       });
 
       it('handles new operator with custom constructors', () => {
@@ -96,13 +98,14 @@ describe('topscript', () => {
       it('handles member expression constructors', () => {
         const context = {
           namespace: {
-            SomeConstructor: function (this: any, value: string) {
-              this.value = value;
+            SomeConstructor: function (value1: string, value2: string) {
+              this.value1 = value1;
+              this.value2 = value2;
             },
           },
         };
 
-        expect(topscript('new namespace.SomeConstructor("test")', context)).toEqual({ value: 'test' });
+        expect(topscript('new namespace.SomeConstructor("value1", "value2")', context)).toEqual({ value1: 'value1', value2: 'value2' });
         expect(() => topscript('new namespace.NonExistent()', context)).toThrow('undefined is not a constructor');
       });
     });
