@@ -14,6 +14,11 @@ describe('topscript', () => {
       expect(() => validate('const x = 1; x + 2; const y = { a: 1 };')).not.toThrow();
     });
 
+    it('allows to specify the ecma version', () => {
+      expect(() => validate('const x = obj?.prop;', { ecmaVersion: 2020 })).not.toThrow();
+      expect(() => validate('const x = obj?.prop;', { ecmaVersion: 2015 })).toThrow();
+    });
+
     it('allows return outside function when specified', () => {
       expect(() => validate('return 42', { allowReturnOutsideFunction: true })).not.toThrow();
       expect(() => validate('return 42')).toThrow();
@@ -27,6 +32,11 @@ describe('topscript', () => {
       expect(() => validate('return null')).toThrow();
       expect(() => validate('return undefined', { allowReturnOutsideFunction: true })).not.toThrow();
       expect(() => validate('return undefined')).toThrow();
+    });
+
+    it('allows await outside function when specified', () => {
+      expect(() => validate('await Promise.resolve(42)', { allowAwaitOutsideFunction: true })).not.toThrow();
+      expect(() => validate('await Promise.resolve(42)')).toThrow();
     });
   });
 

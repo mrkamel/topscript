@@ -5,7 +5,7 @@ import {
   FunctionExpression, ReturnStatement, Pattern, AnonymousFunctionDeclaration, MemberExpression,
   Expression, Statement, TemplateLiteral, WhileStatement, ConditionalExpression,
   ChainExpression, Identifier, UpdateExpression,
-  NewExpression,
+  NewExpression, ecmaVersion,
 } from 'acorn';
 
 const ECMA_VERSION = 2020;
@@ -54,8 +54,12 @@ class ReturnException {
 
 class SafeNavigationException {};
 
-export function validate(script: string, { allowReturnOutsideFunction }: { allowReturnOutsideFunction?: boolean } = {}) {
-  return parse(script, { ecmaVersion: ECMA_VERSION, allowReturnOutsideFunction });
+export function validate(
+  script: string,
+  { ecmaVersion = ECMA_VERSION, allowReturnOutsideFunction, allowAwaitOutsideFunction }:
+  { ecmaVersion?: ecmaVersion, allowReturnOutsideFunction?: boolean, allowAwaitOutsideFunction?: boolean } = {}
+) {
+  return parse(script, { ecmaVersion, allowReturnOutsideFunction, allowAwaitOutsideFunction });
 }
 
 export function topscript(
