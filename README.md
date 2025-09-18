@@ -38,6 +38,7 @@ import { validate } from 'topscript';
 validate('1 + 2')
 validate('1 +') // throws an error
 validate('return 42', { allowReturnOutsideFunction: true })
+validate('await Promise.resolve(42)', { allowAwaitOutsideFunction: true })
 ```
 
 ## Supported Features
