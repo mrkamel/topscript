@@ -20,18 +20,6 @@ function createScope(parent?: object) {
   return res;
 }
 
-// Redefines a property on an object, even if it doesn't exist on the
-// object itself, but on a parent, i.e. a prototype.
-
-function redefineProperty(obj: object, key: PropertyKey, properties: Parameters<typeof Object.defineProperty>[2]) {
-  if (obj.hasOwnProperty(key) || Object.getPrototypeOf(obj) === null) {
-    Object.defineProperty(obj, key, properties);
-    return;
-  }
-
-  redefineProperty(Object.getPrototypeOf(obj), key, properties);
-}
-
 // Checks if an object has a property, even if it doesn't exist on the
 // object itself, but on a parent, i.e. a prototype.
 
@@ -65,10 +53,60 @@ export function validate(
 export function topscript(
   script: string,
   context: ObjectLiteral = {},
-  { timeout, disableWhileStatements, maxStackSize, allowReturnOutsideFunction }: { timeout?: number, disableWhileStatements?: boolean, maxStackSize?: number, allowReturnOutsideFunction?: boolean } = {},
+  {
+    timeout,
+    disableWhileStatements,
+    maxStackSize,
+    allowReturnOutsideFunction,
+    validatePropertyAccess = () => {},
+  }:
+  {
+    timeout?: number,
+    disableWhileStatements?: boolean,
+    maxStackSize?: number,
+    allowReturnOutsideFunction?: boolean,
+    validatePropertyAccess?: (obj: object, key: PropertyKey) => void,
+  } = {},
 ): any {
   const startTime = Date.now();
   let stackSize = 0;
+
+  function defineProperty(obj: object, key: PropertyKey, properties: Parameters<typeof Object.defineProperty>[2]) {
+    validatePropertyAccess(obj, key);
+    Object.defineProperty(obj, key, properties);
+  }
+
+  // Redefines a property on an object, even if it doesn't exist on the
+  // object itself, but on a parent, i.e. a prototype.
+
+  function redefineProperty(obj: object, key: PropertyKey, properties: Parameters<typeof Object.defineProperty>[2]) {
+    if (obj.hasOwnProperty(key) || Object.getPrototypeOf(obj) === null) {
+      validatePropertyAccess(obj, key);
+      Object.defineProperty(obj, key, properties);
+
+      return;
+    }
+
+    redefineProperty(Object.getPrototypeOf(obj), key, properties);
+  }
+
+  function getProperty(obj: object, key: PropertyKey): any {
+    validatePropertyAccess(obj, key);
+
+    return obj[key];
+  }
+
+  function setProperty(obj: object, key: PropertyKey, value: any): void {
+    validatePropertyAccess(obj, key);
+
+    obj[key] = value;
+  }
+
+  function deleteProperty(obj: object, key: PropertyKey): void {
+    validatePropertyAccess(obj, key);
+
+    delete obj[key];
+  }
 
   function withStackCheck<T>(fn: () => T): T {
     stackSize += 1;
@@ -238,14 +276,14 @@ export function topscript(
 
         if (node.property.type === 'Identifier') {
           if (node.computed) {
-            delete object[visitNode({ node: node.property, scope })];
+            deleteProperty(object, visitNode({ node: node.property, scope }));
             return;
           }
 
-          delete object[node.property.name];
+          deleteProperty(object, node.property.name);
           return;
         } else {
-          delete object[visitNode({ node: node.property, scope })];
+          deleteProperty(object, visitNode({ node: node.property, scope }));
           return;
         }
       };
@@ -271,26 +309,29 @@ export function topscript(
     function assignWithOperator(fn: (a: any, b: any) => any) {
       if (expression.left.type === 'Identifier') {
         if (!(expression.left.name in scope)) throw new Error(`${expression.left.name} is unknown`);
-        redefineProperty(scope, expression.left.name, { value: fn((scope as ObjectLiteral)[expression.left.name], visitNode({ node: expression.right, scope })) });
+        redefineProperty(scope, expression.left.name, { value: fn(getProperty(scope, expression.left.name), visitNode({ node: expression.right, scope })) });
         return;
       } else if (expression.left.type === 'MemberExpression') {
         const object = visitNode({ node: expression.left.object, scope });
 
         if (expression.left.property.type === 'Identifier') {
           if (expression.left.computed) {
-            object[visitNode({ node: expression.left.property, scope })] = fn(
-              object[visitNode({ node: expression.left.property, scope })],
+            setProperty(object, visitNode({ node: expression.left.property, scope }), fn(
+              getProperty(object, visitNode({ node: expression.left.property, scope })),
               visitNode({ node: expression.right, scope }),
-            );
+            ));
           } else {
-            object[expression.left.property.name] = fn(object[expression.left.property.name], visitNode({ node: expression.right, scope }));
+            setProperty(object, expression.left.property.name, fn(
+              getProperty(object, expression.left.property.name),
+              visitNode({ node: expression.right, scope }),
+            ));
           }
           return;
         } else {
-          object[visitNode({ node: expression.left.property, scope })] = fn(
-            object[visitNode({ node: expression.left.property, scope })],
-            visitNode({ node: expression.right, scope })
-          );
+          setProperty(object, visitNode({ node: expression.left.property, scope }), fn(
+            getProperty(object, visitNode({ node: expression.left.property, scope })),
+            visitNode({ node: expression.right, scope }),
+          ));
 
           return;
         }
@@ -356,15 +397,15 @@ export function topscript(
 
           if (expression.callee.property.type === 'Identifier') {
             if (expression.callee.computed) {
-              return object[visitNode({ node: expression.callee.property, scope })];
+              return getProperty(object, visitNode({ node: expression.callee.property, scope }));
             }
 
             return visitIdentifier({ node: expression.callee.property, scope: object, optional: expression.callee.optional, memberAccess: true });
           } else if (expression.callee.property.type === 'Literal') {
-            return object[expression.callee.property.value as any];
+            return getProperty(object, expression.callee.property.value as any);
           }
 
-          return object[visitNode({ node: expression.callee.property, scope })];
+          return getProperty(object, visitNode({ node: expression.callee.property, scope }));
         })();
 
         if (typeof fn !== 'function') {
@@ -380,7 +421,7 @@ export function topscript(
         return fn.apply(object, args);
       };
       case 'Identifier': {
-        const fn = (scope as ObjectLiteral)[expression.callee.name];
+        const fn = getProperty(scope, expression.callee.name);
         if (typeof fn !== 'function') throw new Error(`${expression.callee.name} is not a function`);
 
         return fn(...args);
@@ -405,12 +446,12 @@ export function topscript(
           if (scope.hasOwnProperty(declaration.id.name)) throw new Error(`${declaration.id.name} is already declared`);
 
           if (declaration.init === null || declaration.init === undefined) {
-            Object.defineProperty(scope, declaration.id.name, { value: declaration.init, writable: node.kind !== 'const' });
+            defineProperty(scope, declaration.id.name, { value: declaration.init, writable: node.kind !== 'const' });
             break;
           }
 
           const value = visitNode({ node: declaration.init, scope });
-          Object.defineProperty(scope, declaration.id.name, { value, writable: node.kind !== 'const' });
+          defineProperty(scope, declaration.id.name, { value, writable: node.kind !== 'const' });
           break;
         };
         default:
@@ -484,7 +525,7 @@ export function topscript(
     if (!node.id) return fn;
     if (node.async) throw new Error('Async functions are not supported');
 
-    Object.defineProperty(scope, node.id.name, { value: fn, writable: false });
+    defineProperty(scope, node.id.name, { value: fn, writable: false });
   }
 
   function visitFunctionExpression({ node, scope }: { node: FunctionExpression, scope: object }) {
@@ -511,25 +552,25 @@ export function topscript(
     if (node.computed) {
       const property = visitNode({ node: node.property, scope });
 
-      return object[property];
+      return getProperty(object, property);
     }
 
     if (node.property.type !== 'Identifier') {
       throw new Error(`Unexpected property type: ${node.property.type}`);
     }
 
-    return object[node.property.name];
+    return getProperty(object, node.property.name);
   }
 
   function visitParamNode({ node, scope, values, index }: { node: Pattern, scope: object, values: any[], index: number }) {
     switch (node.type) {
       case 'Identifier':
-        Object.defineProperty(scope, node.name, { value: values[index], writable: true });
+        defineProperty(scope, node.name, { value: values[index], writable: true });
         return;
       case 'RestElement':
         if (node.argument.type !== 'Identifier') throw new Error(`Unknown argument type ${node.argument.type}`);
 
-        Object.defineProperty(scope, node.argument.name, { value: values.slice(index), writable: true });
+        defineProperty(scope, node.argument.name, { value: values.slice(index), writable: true });
         return;
       default:
         throw new Error(`Unknown param type ${node.type}`);
@@ -583,14 +624,14 @@ export function topscript(
     if (optional && (scope === undefined || scope === null)) throw new SafeNavigationException();
     if (!hasProperty(scope, node.name) && !memberAccess) throw new Error(`Unknown variable ${node.name}`);
 
-    return (scope as ObjectLiteral)[node.name];
+    return getProperty(scope, node.name);
   }
 
   function visitUpdateExpression({ expression, scope }: { expression: UpdateExpression, scope: object }): any {
     if (expression.argument.type === 'Identifier') {
       if (!(expression.argument.name in scope)) throw new Error(`${expression.argument.name} is unknown`);
 
-      const value = (scope as ObjectLiteral)[expression.argument.name];
+      const value = getProperty(scope, expression.argument.name);
 
       if (expression.operator === '++') {
         const newValue = value + 1;
@@ -613,27 +654,27 @@ export function topscript(
       if (expression.argument.property.type === 'Identifier') {
         if (expression.argument.computed) {
           const key = visitNode({ node: expression.argument.property, scope });
-          const value = object[key];
+          const value = getProperty(object, key);
           const newValue = expression.operator === '++' ? value + 1 : value - 1;
 
-          object[key] = newValue;
+          setProperty(object, key, newValue);
 
           return expression.prefix ? newValue : value;
         } else {
           const key = expression.argument.property.name;
-          const value = object[key];
+          const value = getProperty(object, key);
           const newValue = expression.operator === '++' ? value + 1 : value - 1;
 
-          object[key] = newValue;
+          setProperty(object, key, newValue);
 
           return expression.prefix ? newValue : value;
         }
       } else {
         const key = visitNode({ node: expression.argument.property, scope });
-        const value = object[key];
+        const value = getProperty(object, key);
         const newValue = expression.operator === '++' ? value + 1 : value - 1;
 
-        object[key] = newValue;
+        setProperty(object, key, newValue);
 
         return expression.prefix ? newValue : value;
       }
