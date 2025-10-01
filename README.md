@@ -75,6 +75,15 @@ Topscript includes several safety mechanisms:
   topscript('const fn1 = () => fn2(); const fn2 = () => 0; fn1()', {}, { maxStackSize: 1 }); // throws
   ```
 
+- **Property access**: You can specify a `validatePropertyAccess` function
+  ```js
+  topscript('Date.prototype.getFullYear = () => 1990', { Date }, {
+    validatePropertyAccess: (obj: object, key: PropertyKey) => {
+      if (obj === Date && key === 'prototype') throw new Error('Accessing Date.prototype is not allowed');
+    },
+  }) // throws
+  ```
+
 ## Other options
 
 You can pass `allowReturnOutsideFunction` to enable:

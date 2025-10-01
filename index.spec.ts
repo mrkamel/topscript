@@ -40,6 +40,50 @@ describe('topscript', () => {
     });
   });
 
+  it('uses the property access validation', () => {
+    expect(() => topscript('Date.prototype', { Date })).not.toThrow();
+
+    expect(() => topscript('(new Date()).constructor.prototype', { Date }, {
+      validatePropertyAccess: (obj: object, key: PropertyKey) => {
+        if (obj === Date && key === 'prototype') throw new Error('Access to Date.prototype is not allowed');
+      },
+    })).toThrow('Access to Date.prototype is not allowed');
+
+    expect(() => topscript('(new Date()).constructor.prototype', { Date }, {
+      validatePropertyAccess: () => {
+        // nothing
+      },
+    })).not.toThrow();
+
+    expect(() => topscript('String.prototype', { String })).not.toThrow();
+
+    expect(() => topscript('(new String()).constructor.prototype', { String }, {
+      validatePropertyAccess: (obj: object, key: PropertyKey) => {
+        if (obj === String && key === 'prototype') throw new Error('Access to String.prototype is not allowed');
+      },
+    })).toThrow('Access to String.prototype is not allowed');
+
+    expect(() => topscript('(new String()).constructor.prototype', { String }, {
+      validatePropertyAccess: () => {
+        // nothing
+      },
+    })).not.toThrow();
+
+    expect(() => topscript('"".length')).not.toThrow();
+
+    expect(() => topscript('"".length', { String }, {
+      validatePropertyAccess: (obj: object, key: PropertyKey) => {
+        if (typeof obj === 'string' && key === 'length') throw new Error('Access to String.prototype.length is not allowed');
+      },
+    })).toThrow('Access to String.prototype.length is not allowed');
+
+    expect(() => topscript('"".length', { String }, {
+      validatePropertyAccess: () => {
+        // nothing
+      },
+    })).not.toThrow();
+  });
+
   describe('topscript', () => {
     describe('arithmetic edge cases', () => {
       it('handles division by zero', () => {
@@ -109,8 +153,8 @@ describe('topscript', () => {
         const context = {
           namespace: {
             SomeConstructor: function (value1: string, value2: string) {
-              this.value1 = value1;
-              this.value2 = value2;
+              (this as any).value1 = value1;
+              (this as any).value2 = value2;
             },
           },
         };
